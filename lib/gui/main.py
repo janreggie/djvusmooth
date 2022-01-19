@@ -20,7 +20,7 @@ import functools
 import locale
 import os.path
 import threading
-from Queue import Queue, Empty as QueueEmpty
+from queue import Queue, Empty as QueueEmpty
 
 import djvusmooth.dependencies
 
@@ -184,7 +184,7 @@ class MetadataModel(models.metadata.Metadata):
             page_annotations.wait()
             page_metadata = page_annotations.metadata
             result = {}
-            for k, v in page_metadata.iteritems():
+            for k, v in page_metadata.items():
                 if k not in document_metadata:
                     pass
                 elif v != document_metadata[k]:
@@ -291,7 +291,7 @@ class MainWindow(wx.Frame):
             )
         def set(self, xywh):
             (x, y, w, h) = xywh
-            for key, value in dict(x=x, y=y, width=w, height=h).iteritems():
+            for key, value in dict(x=x, y=y, width=w, height=h).items():
                 self._config['main_window_%s' % key] = value
         return property(get, set)
 
@@ -505,7 +505,7 @@ class MainWindow(wx.Frame):
             (_('&Previous page') + '\tPgUp', _('Jump to previous document page'), self.on_previous_page, wx.ART_GO_UP),
             (_('&Next page') + '\tPgDn', _('Jump to next document page'), self.on_next_page, wx.ART_GO_DOWN),
             (_('&Last page') + '\tCtrl-End', _('Jump to last document page'), self.on_last_page, None),
-            (_(u'&Go to page…') + '\tCtrl-G', _(u'Jump to page…'), self.on_goto_page, None)
+            (_('&Go to page…') + '\tCtrl-G', _('Jump to page…'), self.on_goto_page, None)
         ]:
             menu_item(caption, help, method, icon=icon)
         return menu
@@ -516,7 +516,7 @@ class MainWindow(wx.Frame):
         sidebar_menu_item = menu_item(_('Show &sidebar') + '\tF9', _('Show/hide the sidebar'), self.on_show_sidebar, style=wx.ITEM_CHECK)
         if self.default_sidebar_shown:
             sidebar_menu_item.Check()
-        menu_item(_(u'External editor…'), _('Setup an external editor'), self.on_setup_external_editor)
+        menu_item(_('External editor…'), _('Setup an external editor'), self.on_setup_external_editor)
         return menu
 
     def _create_help_menu(self):
@@ -633,7 +633,7 @@ class MainWindow(wx.Frame):
             except QueueEmpty:
                 dialog = dialogs.ProgressDialog(
                     title=_('Saving document'),
-                    message=_(u'Saving the document, please wait…'),
+                    message=_('Saving the document, please wait…'),
                     parent=self,
                     style=(wx.PD_APP_MODAL | wx.PD_ELAPSED_TIME),
                 )
@@ -780,7 +780,7 @@ class MainWindow(wx.Frame):
         if zone is None:
             return
         if scope_all:
-            page_nos = xrange(len(self.document.pages))
+            page_nos = range(len(self.document.pages))
         else:
             page_nos = (self.page_no,)
         for page_no in page_nos:
@@ -805,7 +805,7 @@ class MainWindow(wx.Frame):
                     tmp_file.flush()
                     self.external_editor(tmp_file.name)
                     tmp_file.seek(0)
-                    new_repr = map(str.expandtabs, itertools.imap(str.rstrip, tmp_file))
+                    new_repr = list(map(str.expandtabs, map(str.rstrip, tmp_file)))
             except Exception as exception:
                 pass
             else:
@@ -883,7 +883,7 @@ class MainWindow(wx.Frame):
             percent = self.page_widget.zoom.percent
         except ValueError:
             return  # FIXME
-        candidates = [k for k in self.zoom_menu_items.iterkeys() if k < percent]
+        candidates = [k for k in self.zoom_menu_items.keys() if k < percent]
         if not candidates:
             return
         self.do_percent_zoom(max(candidates))
@@ -893,7 +893,7 @@ class MainWindow(wx.Frame):
             percent = self.page_widget.zoom.percent
         except ValueError:
             return  # FIXME
-        candidates = [k for k in self.zoom_menu_items.iterkeys() if k > percent]
+        candidates = [k for k in self.zoom_menu_items.keys() if k > percent]
         if not candidates:
             return
         self.do_percent_zoom(min(candidates))
@@ -904,7 +904,7 @@ class MainWindow(wx.Frame):
         return event_handler
 
     def do_open(self, path):
-        if isinstance(path, unicode):
+        if isinstance(path, str):
             path = path.encode(system_encoding)
         if self.dirty:
             dialog = wx.MessageDialog(self, _('Do you want to save your changes?'), '', wx.YES_NO | wx.YES_DEFAULT | wx.CANCEL | wx.ICON_QUESTION)
@@ -981,7 +981,7 @@ class MainWindow(wx.Frame):
             base_path = os.path.basename(self.path)
             if isinstance(base_path, str):
                 base_path = base_path.decode(system_encoding, 'replace')
-            title = u'%s — %s' % (APPLICATION_NAME, base_path)
+            title = '%s — %s' % (APPLICATION_NAME, base_path)
         self.SetTitle(title)
 
     def on_about(self, event):
@@ -996,7 +996,7 @@ class MainWindow(wx.Frame):
             author=__author__,
             license=LICENSE
         )
-        wx.MessageBox(message=message, caption=_(u'About…'))
+        wx.MessageBox(message=message, caption=_('About…'))
 
     def handle_message(self, event):
         message = event.message

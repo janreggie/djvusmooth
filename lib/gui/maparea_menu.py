@@ -22,10 +22,10 @@ from djvusmooth.i18n import _
 def show_menu(parent, annotations, node, point, origin=None):
     menu = wx.Menu()
     try:
-        menu_item = menu.Append(wx.ID_ANY, _(u'&New hyperlink…'))
+        menu_item = menu.Append(wx.ID_ANY, _('&New hyperlink…'))
         parent.Bind(wx.EVT_MENU, lambda event: on_new_annotation(event, parent, annotations, origin), menu_item)
         if node is not None:
-            menu_item = menu.Append(wx.ID_ANY, _(u'&Properties…'))
+            menu_item = menu.Append(wx.ID_ANY, _('&Properties…'))
             parent.Bind(wx.EVT_MENU, lambda event: on_properties(event, parent, node), menu_item)
             menu_item = menu.Append(wx.ID_ANY, _('&Remove') + '\tDel')
             parent.Bind(wx.EVT_MENU, lambda event: on_delete(event, parent, node), menu_item)

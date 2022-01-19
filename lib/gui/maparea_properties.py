@@ -109,7 +109,7 @@ class MapareaPropertiesDialog(wx.Dialog):
         return box
 
     def do_select_shape(self, shape):
-        for _shape, items in self._specific_sizers.iteritems():
+        for _shape, items in self._specific_sizers.items():
             for item in items:
                 self._sizer.Show(item, False, recursive=True)
         try:
@@ -234,7 +234,7 @@ class MapareaPropertiesDialog(wx.Dialog):
             wx.StaticBox(self, label=label)
             for label in (_('Highlight color and opacity'), _('Line-specific properties'), _('Text-specific properties'))
         ]
-        extra_sizers = map(wx.StaticBoxSizer, extra_boxes)
+        extra_sizers = list(map(wx.StaticBoxSizer, extra_boxes))
         highlight_specific_sizer, line_specific_sizer, text_specific_sizer = extra_sizers
         self._specific_sizers = {
             SHAPE_RECTANGLE: [highlight_specific_sizer],

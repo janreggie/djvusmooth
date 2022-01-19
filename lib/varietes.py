@@ -119,8 +119,8 @@ def fix_uri(s):
     >>> fix_uri(uri) == uri
     True
     '''
-    from urllib import quote
-    if isinstance(s, unicode):
+    from urllib.parse import quote
+    if isinstance(s, str):
         s = s.encode('UTF-8')
     return quote(s, safe=URI_SPECIAL_CHARACTERS)
 
@@ -172,7 +172,7 @@ class idict(object):
         return '{mod}.{cls}({init})'.format(
             mod=self.__module__,
             cls=type(self).__name__,
-            init=', '.join('{k}={v!r}'.format(k=k, v=v) for k, v in self.__dict__.iteritems())
+            init=', '.join('{k}={v!r}'.format(k=k, v=v) for k, v in self.__dict__.items())
         )
 
 # vim:ts=4 sts=4 sw=4 et

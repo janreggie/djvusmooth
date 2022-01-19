@@ -66,7 +66,7 @@ class FileHistory(object):
     def __iter__(self):
         return (
             self[n]
-            for n in xrange(len(self))
+            for n in range(len(self))
         )
 
     def __getitem__(self, n):

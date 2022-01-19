@@ -43,7 +43,7 @@ class Node(object):
     def __init__(self, sexpr, owner):
         self._owner = owner
         self._type = djvu.const.get_text_zone_type(sexpr[0].value)
-        x0, y0, x1, y1 = (sexpr[i].value for i in xrange(1, 5))
+        x0, y0, x1, y1 = (sexpr[i].value for i in range(1, 5))
         self._x = x0
         self._y = y0
         self._w = x1 - x0
@@ -259,7 +259,7 @@ class InnerNode(Node):
     @apply
     def left_child():
         def get(self):
-            return iter(self._children).next()
+            return next(iter(self._children))
         return property(get)
 
     def remove_child(self, child):

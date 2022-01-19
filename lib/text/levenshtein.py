@@ -44,13 +44,13 @@ class Append(Operation):
 def distance(s, t):
     len_s = len(s)
     len_t = len(t)
-    d = [[None for j in xrange(len_t + 1)] for i in xrange(len_s + 1)]
-    for i in xrange(len_s + 1):
+    d = [[None for j in range(len_t + 1)] for i in range(len_s + 1)]
+    for i in range(len_s + 1):
         d[i][0] = Drop(i)
-    for j in xrange(len_t + 1):
+    for j in range(len_t + 1):
         d[0][j] = Append(j)
-    for i in xrange(1, len_s + 1):
-        for j in xrange(1, len_t + 1):
+    for i in range(1, len_s + 1):
+        for j in range(1, len_t + 1):
             subst_cost = int(s[i - 1] != t[j - 1])
             d[i][j] = min(
                 Delete(d[i - 1][j] + 1),
@@ -74,10 +74,10 @@ def distance(s, t):
             if s[i] != t[j]:
                 ops += (i, s[i], t[j],),
         elif isinstance(op, Append):
-            ops += ((i, '', t[jj]) for jj in xrange(j - 1, -1, -1))
+            ops += ((i, '', t[jj]) for jj in range(j - 1, -1, -1))
             break
         elif isinstance(op, Drop):
-            ops += ((ii, s[ii], '') for ii in xrange(i - 1, -1, -1))
+            ops += ((ii, s[ii], '') for ii in range(i - 1, -1, -1))
             break
     return reversed(ops)
 

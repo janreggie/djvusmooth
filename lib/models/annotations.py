@@ -249,7 +249,7 @@ class MapArea(Annotation):
                 target = None
             uri = uri.decode('UTF-8')
             comment = sexpr.next().value.decode('UTF-8', 'replace')
-            shape = sexpr.next()
+            shape = next(sexpr)
             shape_iter = iter(shape)
             cls = MAPAREA_SHAPE_TO_CLASS[shape_iter.next().value]
             args = [int(item) for item in shape_iter]
@@ -349,7 +349,7 @@ class MapArea(Annotation):
             if option.startswith('s_'):
                 raise MapAreaSyntaxError('%r is invalid option for %r annotations' % (option[2:], self.SYMBOL))
         if options:
-            raise ValueError('%r is invalid keyword argument for this function' % (iter(options).next(),))
+            raise ValueError('%r is invalid keyword argument for this function' % (next(iter(options)),))
 
     def _parse_common_options(self, options):
         self._uri = options.pop('uri')
@@ -473,7 +473,7 @@ class XywhMapArea(MapArea):
         return self
 
     def _parse_xywh(self, x, y, w, h):
-        x, y, w, h = map(int, (x, y, w, h))
+        x, y, w, h = list(map(int, (x, y, w, h)))
         if w <= 0 or h <= 0:
             raise ValueError
         self._x, self._y, self._w, self._h = x, y, w, h
@@ -605,7 +605,7 @@ class PolygonMapArea(MapArea):
 
     def _set_rect(self, rect):
         xform = djvu.decode.AffineTransform(self.rect, rect)
-        self._coords = map(xform, self._coords)
+        self._coords = list(map(xform, self._coords))
         self._notify_change()
 
     @classmethod
@@ -630,7 +630,7 @@ class PolygonMapArea(MapArea):
         if n_coords < 6:
             raise ValueError('polygon with %d vertices' % (n_coords // 2))
         coords = (int(x) for x in coords)
-        self._coords = zip(coords, coords)
+        self._coords = list(zip(coords, coords))
         self._parse_border_options(options)
         self._parse_border_always_visible(options)
         self._parse_common_options(options)
@@ -688,7 +688,7 @@ class LineMapArea(MapArea):
         return self
 
     def __init__(self, x1, y1, x2, y2, **options):
-        self._x0, self._y0, self._x1, self._y1 = itertools.imap(int, (x1, y1, x2, y2))
+        self._x0, self._y0, self._x1, self._y1 = map(int, (x1, y1, x2, y2))
         try:
             del options['s_%s' % djvu.const.MAPAREA_ARROW]
         except KeyError:
@@ -854,7 +854,7 @@ class PageAnnotations(object):
         self._callbacks[callback] = 1
 
     def _classify_data(self, items):
-        result = dict((key, []) for key in ANNOTATION_TYPE_TO_CLASS.itervalues())
+        result = dict((key, []) for key in ANNOTATION_TYPE_TO_CLASS.values())
         result[None] = []
         for item in items:
             cls = ANNOTATION_TYPE_TO_CLASS.get(item[0].value)
@@ -897,7 +897,7 @@ class PageAnnotations(object):
         if not self._dirty:
             return
         self.export_select(djvused)
-        djvused.set_annotations(node.sexpr for nodes in self._data.itervalues() for node in nodes)
+        djvused.set_annotations(node.sexpr for nodes in self._data.values() for node in nodes)
 
     def export_select(self, djvused):
         djvused.select(self._n + 1)

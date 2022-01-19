@@ -120,7 +120,7 @@ class Node(object):
     @apply
     def left_child():
         def get(self):
-            return iter(self).next()
+            return next(iter(self))
         return property(get)
 
     def delete(self):
@@ -291,7 +291,7 @@ class Outline(object):
     def import_plaintext(self, lines):
         def fix_node(node):
             it = iter(node)
-            it.next()
+            next(it)
             for subnode in it:
                 fix_node(subnode)
             text = node[0]

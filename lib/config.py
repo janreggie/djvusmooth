@@ -33,7 +33,7 @@ class xdg(object):
     xdg_config_dirs = os.environ.get('XDG_CONFIG_DIRS') or '/etc/xdg'
     xdg_config_dirs = (
         [xdg_config_home] +
-        filter(os.path.abspath, xdg_config_dirs.split(os.path.pathsep))
+        list(filter(os.path.abspath, xdg_config_dirs.split(os.path.pathsep)))
     )
 
     @classmethod
@@ -115,8 +115,8 @@ class Config(object):
         tmp_path = path + '.tmp'
         file = open(tmp_path, 'w')
         try:
-            for key, value in sorted(self._data.iteritems()):
-                if isinstance(value, unicode):
+            for key, value in sorted(self._data.items()):
+                if isinstance(value, str):
                     value = value.encode('UTF-8')
                 file.write('{key}={val}\n'.format(key=key, val=value))
             file.flush()

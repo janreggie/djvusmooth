@@ -13,7 +13,7 @@
 # FITNESS FOR A PARTICULAR PURPOSE. See the GNU General Public License for
 # more details.
 
-from __future__ import print_function
+
 
 import itertools
 
@@ -28,7 +28,7 @@ def mangle(s, t, input):
     if len(input) == 1 and isinstance(input[0], djvu.sexpr.StringExpression):
         yield t
         return
-    input = tuple(map(lambda o: o.value, item) for item in input)
+    input = tuple([o.value for o in item] for item in input)
     j = 0
     current_word = ''
     for item in input:
@@ -36,12 +36,12 @@ def mangle(s, t, input):
     for item in input:
         item[5] = len(item[5])
     input_iter = iter(input)
-    input_head = input_iter.next()
+    input_head = next(input_iter)
     for i, ot, to in distance(s, t):
         while i > j:
             if s[j] == ' ':
                 yield input_head[:5] + [current_word]
-                input_head = input_iter.next()
+                input_head = next(input_iter)
                 current_word = ''
             else:
                 current_word += s[j]
@@ -60,7 +60,7 @@ def mangle(s, t, input):
             current_word = ''
         elif ot == ' ':
             current_word += to
-            next_head = input_iter.next()
+            next_head = next(input_iter)
             input_head[2] = min(next_head[2], input_head[2])
             input_head[3] = max(next_head[3], input_head[3])
             input_head[4] = next_head[4]
@@ -72,7 +72,7 @@ def mangle(s, t, input):
     while j < len_s:
         if s[j] == ' ':
             yield input_head[:5] + [current_word]
-            input_head = input_iter.next()
+            input_head = next(input_iter)
             current_word = ''
         else:
             current_word += s[j]
@@ -119,7 +119,7 @@ def import_(sexpr, stdin):
         raise LengthChanged
     assert len(exported) == len(inputs) == len(stdin)
     dirty = False
-    for n, line, xline, input in itertools.izip(itertools.count(1), stdin, exported, inputs):
+    for n, line, xline, input in zip(itertools.count(1), stdin, exported, inputs):
         line = line.rstrip('\n')
         if line != xline:
             input[5:] = list(mangle(xline, line, input[5:]))

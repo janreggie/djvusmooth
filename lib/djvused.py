@@ -97,8 +97,8 @@ class StreamEditor(object):
 
     def set_metadata(self, meta):
         self._add('set-meta')
-        for key, value in meta.iteritems():
-            value = unicode(value)
+        for key, value in meta.items():
+            value = str(value)
             self._add('%s\t%s' % (Expression(Symbol(key)), Expression(value)))
         self._add('.')
 

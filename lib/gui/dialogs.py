@@ -34,7 +34,7 @@ try:
 except AttributeError:
     class NumberEntryDialog(wx.SingleChoiceDialog):
         def __init__(self, parent, message, prompt, caption, value, min, max, pos=wx.DefaultPosition):
-            wx.SingleChoiceDialog.__init__(self, parent=parent, message=message, caption=caption, choices=map(str, xrange(min, max + 1)), pos=pos)
+            wx.SingleChoiceDialog.__init__(self, parent=parent, message=message, caption=caption, choices=list(map(str, range(min, max + 1))), pos=pos)
             self.SetSelection(value - min)
 
         def GetValue(self):
