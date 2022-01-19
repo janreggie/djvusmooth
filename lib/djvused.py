@@ -21,42 +21,45 @@ from djvu.sexpr import Expression, Symbol
 from . import ipc
 
 djvused_path = None
-if os.name == 'nt':
+if os.name == "nt":
     from . import dependencies
-    djvused_path = os.path.join(dependencies.djvulibre_path, 'djvused.exe')
+
+    djvused_path = os.path.join(dependencies.djvulibre_path, "djvused.exe")
 else:
     from . import pkgconfig
+
     try:
-        djvulibre_bin_path = os.path.join(pkgconfig.Package('ddjvuapi').variable('exec_prefix'), 'bin')
+        djvulibre_bin_path = os.path.join(
+            pkgconfig.Package("ddjvuapi").variable("exec_prefix"), "bin"
+        )
     except (IOError, OSError):
         pass
     else:
-        djvused_path = os.path.join(djvulibre_bin_path, 'djvused')
+        djvused_path = os.path.join(djvulibre_bin_path, "djvused")
 if djvused_path is None or not os.path.isfile(djvused_path):
     # Let's hope it's within $PATH...
-    djvused_path = 'djvused'
+    djvused_path = "djvused"
+
 
 def _djvused_usability_check():
     try:
-        djvused = ipc.Subprocess(
-            [djvused_path],
-            stdout=ipc.PIPE,
-            stderr=ipc.PIPE
-        )
+        djvused = ipc.Subprocess([djvused_path], stdout=ipc.PIPE, stderr=ipc.PIPE)
         djvused.communicate()
         if djvused.returncode == 10:
             return
     except (IOError, OSError):
         pass
-    raise IOError('{path!r} does not seem to be usable'.format(path=djvused_path))
+    raise IOError("{path!r} does not seem to be usable".format(path=djvused_path))
+
 
 _djvused_usability_check()
+
 
 class IOError(IOError):
     pass
 
-class StreamEditor(object):
 
+class StreamEditor(object):
     def __init__(self, file_name, autosave=False):
         self._file_name = file_name
         self._commands = []
@@ -72,76 +75,76 @@ class StreamEditor(object):
         self._commands += commands
 
     def select_all(self):
-        self._add('select')
+        self._add("select")
 
     def select(self, page_id):
-        self._add('select %s' % page_id)
+        self._add("select %s" % page_id)
 
     def select_shared_annotations(self):
-        self._add('select-shared-ant')
+        self._add("select-shared-ant")
 
     def create_shared_annotations(self):
-        self._add('create-shared-ant')
+        self._add("create-shared-ant")
 
     def set_annotations(self, annotations):
-        self._add('set-ant')
+        self._add("set-ant")
         for annotation in annotations:
             self._add(str(annotation))
-        self._add('.')
+        self._add(".")
 
     def remove_annotations(self):
-        self._add('remove-ant')
+        self._add("remove-ant")
 
     def print_annotations(self):
-        self._add('print-ant')
+        self._add("print-ant")
 
     def set_metadata(self, meta):
-        self._add('set-meta')
+        self._add("set-meta")
         for key, value in meta.items():
             value = str(value)
-            self._add('%s\t%s' % (Expression(Symbol(key)), Expression(value)))
-        self._add('.')
+            self._add("%s\t%s" % (Expression(Symbol(key)), Expression(value)))
+        self._add(".")
 
     def remove_metadata(self):
-        self._add('remove-meta')
+        self._add("remove-meta")
 
     def set_text(self, text):
         if text is None:
             self.remove_text()
         else:
-            self._add('set-txt', str(text), '.')
+            self._add("set-txt", str(text), ".")
 
     def remove_text(self):
-        self._add('remove-txt')
+        self._add("remove-txt")
 
     def set_outline(self, outline):
         if outline is None:
-            outline = ''
-        self._add('set-outline', str(outline), '.')
+            outline = ""
+        self._add("set-outline", str(outline), ".")
 
     def set_thumbnails(self, size):
-        self._add('set-thumbnails %d' % size)
+        self._add("set-thumbnails %d" % size)
 
     def remove_thumbnails(self):
-        self._add('remove-thumbnails')
+        self._add("remove-thumbnails")
 
     def set_page_title(self, title):
-        self._add('set-page-title %s' % Expression(title))
+        self._add("set-page-title %s" % Expression(title))
 
     def save_page(self, file_name, include=False):
-        command = 'save-page'
+        command = "save-page"
         if include:
-            command += '-with'
-        self._add('%s %s' % command, file_name)
+            command += "-with"
+        self._add("%s %s" % command, file_name)
 
     def save_as_bundled(self, file_name):
-        self._add('save-bundled %s' % file_name)
+        self._add("save-bundled %s" % file_name)
 
     def save_as_indirect(self, file_name):
-        self._add('save-indirect %s' % file_name)
+        self._add("save-indirect %s" % file_name)
 
     def save(self):
-        self._add('save')
+        self._add("save")
 
     def _reader_thread(self, fo, result):
         result[0] = fo.read()
@@ -149,27 +152,22 @@ class StreamEditor(object):
     def _execute(self, commands, save=False):
         args = [djvused_path]
         if save:
-            args += '-s',
-        args += self._file_name,
-        djvused = ipc.Subprocess(args,
-            stdin=ipc.PIPE,
-            stdout=ipc.PIPE,
-            stderr=ipc.PIPE
-        )
+            args += ("-s",)
+        args += (self._file_name,)
+        djvused = ipc.Subprocess(args, stdin=ipc.PIPE, stdout=ipc.PIPE, stderr=ipc.PIPE)
         result = [None]
         reader_thread = threading.Thread(
-            target=self._reader_thread,
-            args=(djvused.stdout, result)
+            target=self._reader_thread, args=(djvused.stdout, result)
         )
         reader_thread.setDaemon(True)
         reader_thread.start()
         stdin = djvused.stdin
         for command in commands:
-            stdin.write(command + '\n')
+            stdin.write(command + "\n")
         stdin.close()
         djvused.wait()
         if djvused.returncode:
-            raise IOError(djvused.stderr.readline().lstrip('* '))
+            raise IOError(djvused.stderr.readline().lstrip("* "))
         reader_thread.join()
         return result[0]
 
@@ -178,5 +176,6 @@ class StreamEditor(object):
             return self._execute(self._commands, save=self._autosave)
         finally:
             self._commands = []
+
 
 # vim:ts=4 sts=4 sw=4 et

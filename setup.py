@@ -13,9 +13,9 @@
 # FITNESS FOR A PARTICULAR PURPOSE. See the GNU General Public License for
 # more details.
 
-'''
+"""
 *djvusmooth* is a graphical editor for DjVu documents.
-'''
+"""
 
 import glob
 import os
@@ -36,63 +36,72 @@ else:
 
 data_files = []
 
-if os.name == 'posix':
-    data_files += [
-        ('share/applications', ['extra/djvusmooth.desktop'])
-    ]
+if os.name == "posix":
+    data_files += [("share/applications", ["extra/djvusmooth.desktop"])]
+
 
 def get_version():
-    with open('doc/changelog', 'r') as file:
+    with open("doc/changelog", "r") as file:
         line = file.readline()
-    return line.split()[1].strip('()')
+    return line.split()[1].strip("()")
+
 
 class build_mo(distutils_build):
 
-    description = 'build binary message catalogs'
+    description = "build binary message catalogs"
 
     def run(self):
-        if os.name != 'posix':
+        if os.name != "posix":
             return
-        for poname in glob.iglob('po/*.po'):
+        for poname in glob.iglob("po/*.po"):
             lang, _ = os.path.splitext(os.path.basename(poname))
-            modir = os.path.join('locale', lang, 'LC_MESSAGES')
+            modir = os.path.join("locale", lang, "LC_MESSAGES")
             if not os.path.isdir(modir):
                 os.makedirs(modir)
-            moname = os.path.join(modir, 'djvusmooth.mo')
-            command = ['msgfmt', '-o', moname, '--verbose', '--check', '--check-accelerators', poname]
+            moname = os.path.join(modir, "djvusmooth.mo")
+            command = [
+                "msgfmt",
+                "-o",
+                moname,
+                "--verbose",
+                "--check",
+                "--check-accelerators",
+                poname,
+            ]
             self.make_file([poname], moname, distutils.spawn.spawn, [command])
-            data_files.append((os.path.join('share', modir), [moname]))
+            data_files.append((os.path.join("share", modir), [moname]))
+
 
 class check_po(distutils_build):
 
-    description = 'perform some checks on message catalogs'
+    description = "perform some checks on message catalogs"
 
     def run(self):
-        for poname in glob.iglob('po/*.po'):
-            checkname = poname + '.sdist-check'
-            with open(checkname, 'w'):
+        for poname in glob.iglob("po/*.po"):
+            checkname = poname + ".sdist-check"
+            with open(checkname, "w"):
                 pass
             try:
-                for feature in 'untranslated', 'fuzzy':
-                    with open(checkname, 'w'):
+                for feature in "untranslated", "fuzzy":
+                    with open(checkname, "w"):
                         pass
-                    command = ['msgattrib', '--' + feature, '-o', checkname, poname]
+                    command = ["msgattrib", "--" + feature, "-o", checkname, poname]
                     distutils.spawn.spawn(command)
                     with open(checkname) as file:
                         entries = file.read()
                     if entries:
-                        raise IOError(None, '{po} has {n} entries'.format(po=poname, n=feature))
+                        raise IOError(
+                            None, "{po} has {n} entries".format(po=poname, n=feature)
+                        )
             finally:
                 os.unlink(checkname)
 
+
 class build_doc(distutils_build):
 
-    description = 'build documentation'
+    description = "build documentation"
 
-    _url_regex = re.compile(
-        r'^(\\%https?://.*)',
-        re.MULTILINE
-    )
+    _url_regex = re.compile(r"^(\\%https?://.*)", re.MULTILINE)
 
     _date_regex = re.compile(
         '"(?P<month>[0-9]{2})/(?P<day>[0-9]{2})/(?P<year>[0-9]{4})"'
@@ -100,71 +109,77 @@ class build_doc(distutils_build):
 
     def build_man(self, manname, commandline):
         self.spawn(commandline)
-        with open(manname, 'r+') as file:
+        with open(manname, "r+") as file:
             contents = file.read()
             # Format URLs:
             contents = self._url_regex.sub(
-                lambda m: r'\m[blue]\fI{0}\fR\m[]'.format(*m.groups()),
+                lambda m: r"\m[blue]\fI{0}\fR\m[]".format(*m.groups()),
                 contents,
             )
             # Use RFC 3339 date format:
             contents = self._date_regex.sub(
-                lambda m: '{year}-{month}-{day}'.format(**m.groupdict()),
-                contents
+                lambda m: "{year}-{month}-{day}".format(**m.groupdict()), contents
             )
             file.seek(0)
             file.truncate()
             file.write(contents)
 
     def run(self):
-        if os.name != 'posix':
+        if os.name != "posix":
             return
-        xmlname = 'doc/manpage.xml'
-        manname = 'doc/djvusmooth.1'
+        xmlname = "doc/manpage.xml"
+        manname = "doc/djvusmooth.1"
         command = [
-            'xsltproc', '--nonet',
-            '--param', 'man.authors.section.enabled', '0',
-            '--param', 'man.charmap.use.subset', '0',
-            '--param', 'man.font.links', '"I"',
-            '--output', 'doc/',
-            'http://docbook.sourceforge.net/release/xsl/current/manpages/docbook.xsl',
+            "xsltproc",
+            "--nonet",
+            "--param",
+            "man.authors.section.enabled",
+            "0",
+            "--param",
+            "man.charmap.use.subset",
+            "0",
+            "--param",
+            "man.font.links",
+            '"I"',
+            "--output",
+            "doc/",
+            "http://docbook.sourceforge.net/release/xsl/current/manpages/docbook.xsl",
             xmlname,
         ]
         self.make_file([xmlname], manname, self.build_man, [manname, command])
-        data_files.append(('share/man/man1', [manname]))
+        data_files.append(("share/man/man1", [manname]))
 
-distutils_build.sub_commands[:0] = [
-    ('build_doc', None),
-    ('build_mo', None)
-]
+
+distutils_build.sub_commands[:0] = [("build_doc", None), ("build_mo", None)]
+
 
 class clean(distutils_clean):
-
     def run(self):
         distutils_clean.run(self)
         if not self.all:
             return
-        for manname in glob.iglob('doc/*.1'):
-            with open(manname, 'r') as file:
+        for manname in glob.iglob("doc/*.1"):
+            with open(manname, "r") as file:
                 stamp = file.readline()
             if stamp != sdist.manpage_stamp:
-                self.execute(os.unlink, [manname], 'removing {0}'.format(manname))
+                self.execute(os.unlink, [manname], "removing {0}".format(manname))
+
 
 class sdist(distutils_sdist):
 
-    manpage_stamp = '''.\\" [created by setup.py sdist]\n'''
+    manpage_stamp = """.\\" [created by setup.py sdist]\n"""
 
     def run(self):
-        self.run_command('build_doc')
-        self.run_command('check_po')
-        self.run_command('build_mo')
+        self.run_command("build_doc")
+        self.run_command("check_po")
+        self.run_command("build_mo")
         return distutils_sdist.run(self)
 
     def _rewrite_manpage(self, manname):
-        with open(manname, 'r') as file:
+        with open(manname, "r") as file:
             contents = file.read()
         os.unlink(manname)
-        with open(manname, 'w') as file:
+        with open(manname, "w") as file:
             file.write(self.manpage_stamp)
             file.write(contents)
 
@@ -176,11 +191,14 @@ class sdist(distutils_sdist):
 
     def make_release_tree(self, base_dir, files):
         distutils_sdist.make_release_tree(self, base_dir, files)
-        for manname in glob.iglob(os.path.join(base_dir, 'doc/*.1')):
-            self.execute(self._rewrite_manpage, [manname], 'rewriting {0}'.format(manname))
-        self._maybe_move_file(base_dir, 'COPYING', 'doc/COPYING')
+        for manname in glob.iglob(os.path.join(base_dir, "doc/*.1")):
+            self.execute(
+                self._rewrite_manpage, [manname], "rewriting {0}".format(manname)
+            )
+        self._maybe_move_file(base_dir, "COPYING", "doc/COPYING")
 
-classifiers = '''
+
+classifiers = """
 Development Status :: 4 - Beta
 Environment :: X11 Applications :: GTK
 Intended Audience :: End Users/Desktop
@@ -192,24 +210,24 @@ Programming Language :: Python :: 2.6
 Programming Language :: Python :: 2.7
 Topic :: Text Processing
 Topic :: Multimedia :: Graphics
-'''.strip().splitlines()
+""".strip().splitlines()
 
 distutils.core.setup(
-    name='djvusmooth',
+    name="djvusmooth",
     version=get_version(),
-    license='GNU GPL 2',
-    description='graphical editor for DjVu',
+    license="GNU GPL 2",
+    description="graphical editor for DjVu",
     long_description=__doc__.strip(),
     classifiers=classifiers,
-    url='http://jwilk.net/software/djvusmooth',
-    author='Jakub Wilk',
-    author_email='jwilk@jwilk.net',
+    url="http://jwilk.net/software/djvusmooth",
+    author="Jakub Wilk",
+    author_email="jwilk@jwilk.net",
     packages=(
-        ['djvusmooth'] +
-        ['djvusmooth.{mod}'.format(mod=mod) for mod in ['gui', 'models', 'text']]
+        ["djvusmooth"]
+        + ["djvusmooth.{mod}".format(mod=mod) for mod in ["gui", "models", "text"]]
     ),
-    package_dir=dict(djvusmooth='lib'),
-    scripts=['djvusmooth'],
+    package_dir=dict(djvusmooth="lib"),
+    scripts=["djvusmooth"],
     data_files=data_files,
     cmdclass=dict(
         build_doc=build_doc,

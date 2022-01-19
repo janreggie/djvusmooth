@@ -13,11 +13,12 @@
 # FITNESS FOR A PARTICULAR PURPOSE. See the GNU General Public License for
 # more details.
 
-'''
+"""
 Checks for djvusmooth dependencies.
-'''
+"""
 
 djvulibre_path = None
+
 
 def _check_djvu():
     # On Windows, special measures may be needed to find the DjVuLibre DLL.
@@ -31,25 +32,10 @@ def _check_djvu():
     try:
         import djvu.decode
     except ImportError as exc:
-        raise ImportError('{exc}; is python-djvulibre installed?'.format(exc=exc))
+        raise ImportError("{exc}; is python-djvulibre installed?".format(exc=exc))
     del djvu  # quieten pyflakes
 
-def _check_wx():
-    try:
-        import wxversion
-    except ImportError as exc:
-        raise ImportError('{exc}; is wxPython installed?'.format(exc=exc))
-    for ver in ['2.8-unicode', '3.0']:
-        try:
-            wxversion.select(ver, optionsRequired=True)
-        except wxversion.VersionError:
-            continue
-        else:
-            break
-    else:
-        raise ImportError('wxPython 3.0 or 2.8 in Unicode mode is required')
 
 _check_djvu()
-_check_wx()
 
 # vim:ts=4 sts=4 sw=4 et

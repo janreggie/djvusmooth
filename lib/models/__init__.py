@@ -15,8 +15,8 @@
 
 SHARED_ANNOTATIONS_PAGENO = -1
 
-class MultiPageModel(object):
 
+class MultiPageModel(object):
     def get_page_model_class(self, n):
         raise NotImplementedError
 
@@ -39,6 +39,7 @@ class MultiPageModel(object):
         for id in sorted(self._pages):
             self._pages[id].export(djvused)
 
-__all__ = ['MultiPageModel', 'SHARED_ANNOTATIONS_PAGENO']
+
+__all__ = ["MultiPageModel", "SHARED_ANNOTATIONS_PAGENO"]
 
 # vim:ts=4 sts=4 sw=4 et

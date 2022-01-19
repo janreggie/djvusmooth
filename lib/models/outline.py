@@ -13,13 +13,13 @@
 # FITNESS FOR A PARTICULAR PURPOSE. See the GNU General Public License for
 # more details.
 
-'''
+"""
 Models for document outline.
 
 See Lizardtech DjVu Reference (DjVu 3):
 - 4 What's new in DjVu File Format.
 - 8.3.3 Document Outline Chunk.
-'''
+"""
 
 import weakref
 import itertools
@@ -29,8 +29,8 @@ import djvu.const
 
 from djvusmooth.varietes import not_overridden, wref, fix_uri, indents_to_tree
 
-class Node(object):
 
+class Node(object):
     def __init__(self, sexpr, owner):
         self._owner = owner
         self._type = None
@@ -54,7 +54,7 @@ class Node(object):
             self._children[-1]._link_ref = wref(node)
             node._link_right = wref(self._children[-1])
         node._link_parent = wref(self)
-        self._children += node,
+        self._children += (node,)
         self._notify_children_change()
 
     def remove_child(self, child):
@@ -97,6 +97,7 @@ class Node(object):
             if link is None:
                 raise StopIteration
             return link
+
         return property(get)
 
     @apply
@@ -106,6 +107,7 @@ class Node(object):
             if link is None:
                 raise StopIteration
             return link
+
         return property(get)
 
     @apply
@@ -115,12 +117,14 @@ class Node(object):
             if link is None:
                 raise StopIteration
             return link
+
         return property(get)
 
     @apply
     def left_child():
         def get(self):
             return next(iter(self))
+
         return property(get)
 
     def delete(self):
@@ -132,8 +136,8 @@ class Node(object):
     def _notify_children_change(self):
         return self._owner.notify_node_children_change(self)
 
-class RootNode(Node):
 
+class RootNode(Node):
     def __init__(self, sexpr, owner):
         Node.__init__(self, sexpr, owner)
         sexpr = iter(sexpr)
@@ -141,57 +145,66 @@ class RootNode(Node):
         self._set_children(InnerNode(subexpr, owner) for subexpr in sexpr)
 
     def _construct_sexpr(self):
-        return djvu.sexpr.Expression(itertools.chain(
-            (self.type,),
-            (child._construct_sexpr() for child in self._children)
-        ))
+        return djvu.sexpr.Expression(
+            itertools.chain(
+                (self.type,), (child._construct_sexpr() for child in self._children)
+            )
+        )
 
     def export_as_plaintext(self, stream):
         for child in self:
             child.export_as_plaintext(stream, indent=0)
 
-class InnerNode(Node):
 
+class InnerNode(Node):
     def __init__(self, sexpr, owner):
         Node.__init__(self, sexpr, owner)
         sexpr = iter(sexpr)
-        self._text = sexpr.next().value.decode('UTF-8', 'replace')
+        self._text = sexpr.next().value.decode("UTF-8", "replace")
         self._uri = fix_uri(sexpr.next().value)
         self._set_children(InnerNode(subexpr, owner) for subexpr in sexpr)
 
     def _construct_sexpr(self):
-        return djvu.sexpr.Expression(itertools.chain(
-            (self.text, self.uri),
-            (child._construct_sexpr() for child in self._children)
-        ))
+        return djvu.sexpr.Expression(
+            itertools.chain(
+                (self.text, self.uri),
+                (child._construct_sexpr() for child in self._children),
+            )
+        )
 
     @apply
     def uri():
         def get(self):
             return self._uri
+
         def set(self, value):
             self._uri = value
             self._notify_change()
+
         return property(get, set)
 
     @apply
     def text():
         def get(self):
             return self._text
+
         def set(self, value):
             self._text = value
             self._notify_change()
+
         return property(get, set)
 
     def _notify_change(self):
         self._owner.notify_node_change(self)
 
     def export_as_plaintext(self, stream, indent):
-        stream.write('    ' * indent)
+        stream.write("    " * indent)
         stream.write(self.uri)
-        stream.write(' ')
-        stream.write(self.text.encode('UTF-8'))  # TODO: what about control characters etc.?
-        stream.write('\n')
+        stream.write(" ")
+        stream.write(
+            self.text.encode("UTF-8")
+        )  # TODO: what about control characters etc.?
+        stream.write("\n")
         for child in self:
             child.export_as_plaintext(stream, indent=(indent + 1))
 
@@ -202,8 +215,8 @@ class InnerNode(Node):
             return
         parent.remove_child(self)
 
-class OutlineCallback(object):
 
+class OutlineCallback(object):
     @not_overridden
     def notify_tree_change(self, node):
         pass
@@ -220,8 +233,8 @@ class OutlineCallback(object):
     def notify_node_select(self, node):
         pass
 
-class Outline(object):
 
+class Outline(object):
     def __init__(self):
         self._callbacks = weakref.WeakKeyDictionary()
         self._original_sexpr = self.acquire_data()
@@ -236,17 +249,20 @@ class Outline(object):
     def root():
         def get(self):
             return self._root
+
         return property(get)
 
     @apply
     def raw_value():
         def get(self):
             return self._root.sexpr
+
         def set(self, sexpr):
             if not sexpr:
                 sexpr = djvu.const.EMPTY_OUTLINE
             self._root = RootNode(sexpr, self)
             self.notify_tree_change()
+
         return property(get, set)
 
     def remove(self):
@@ -296,10 +312,12 @@ class Outline(object):
                 fix_node(subnode)
             text = node[0]
             if text is not None:
-                node[0:1] = (text.split(None, 1) + ['', ''])[1::-1]
+                node[0:1] = (text.split(None, 1) + ["", ""])[1::-1]
+
         tree = indents_to_tree(lines)
         fix_node(tree)
         tree[0:1] = djvu.const.EMPTY_OUTLINE
         self.raw_value = djvu.sexpr.Expression(tree)
+
 
 # vim:ts=4 sts=4 sw=4 et

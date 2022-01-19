@@ -13,12 +13,12 @@
 # FITNESS FOR A PARTICULAR PURPOSE. See the GNU General Public License for
 # more details.
 
-'''interprocess communication'''
+"""interprocess communication"""
 
 import os
 import signal
 
-if os.name == 'posix':
+if os.name == "posix":
     import subprocess32 as subprocess
 else:
     import subprocess
@@ -29,9 +29,9 @@ PIPE = subprocess.PIPE
 # Protect from scanadf and possibly other software that sets SIGCHLD to
 # SIG_IGN.
 # https://bugs.debian.org/596232
-if os.name == 'posix':
+if os.name == "posix":
     signal.signal(signal.SIGCHLD, signal.SIG_DFL)
 
-__all__ = ['Subprocess', 'PIPE']
+__all__ = ["Subprocess", "PIPE"]
 
 # vim:ts=4 sts=4 sw=4 et

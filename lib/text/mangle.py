@@ -14,7 +14,6 @@
 # more details.
 
 
-
 import itertools
 
 import djvu.sexpr
@@ -22,31 +21,32 @@ import djvu.const
 
 from djvusmooth.text.levenshtein import distance
 
+
 def mangle(s, t, input):
-    s = s.decode('UTF-8', 'replace')
-    t = t.decode('UTF-8', 'replace')
+    s = s.decode("UTF-8", "replace")
+    t = t.decode("UTF-8", "replace")
     if len(input) == 1 and isinstance(input[0], djvu.sexpr.StringExpression):
         yield t
         return
     input = tuple([o.value for o in item] for item in input)
     j = 0
-    current_word = ''
+    current_word = ""
     for item in input:
-        item[5] = item[5].decode('UTF-8', 'replace')
+        item[5] = item[5].decode("UTF-8", "replace")
     for item in input:
         item[5] = len(item[5])
     input_iter = iter(input)
     input_head = next(input_iter)
     for i, ot, to in distance(s, t):
         while i > j:
-            if s[j] == ' ':
+            if s[j] == " ":
                 yield input_head[:5] + [current_word]
                 input_head = next(input_iter)
-                current_word = ''
+                current_word = ""
             else:
                 current_word += s[j]
             j += 1
-        if to == ' ':
+        if to == " ":
             new_len = len(current_word)
             old_len = input_head[5]
             if new_len >= old_len:
@@ -54,11 +54,15 @@ def mangle(s, t, input):
             old_width = 0.0 + input_head[3] - input_head[1]
             spc_width = old_width / old_len
             new_width = old_width / old_len * new_len
-            yield input_head[:3] + [int(input_head[1] + new_width), input_head[4], current_word]
+            yield input_head[:3] + [
+                int(input_head[1] + new_width),
+                input_head[4],
+                current_word,
+            ]
             input_head[1] += int(new_width + spc_width)
             input_head[5] = old_len
-            current_word = ''
-        elif ot == ' ':
+            current_word = ""
+        elif ot == " ":
             current_word += to
             next_head = next(input_iter)
             input_head[2] = min(next_head[2], input_head[2])
@@ -70,14 +74,15 @@ def mangle(s, t, input):
         j = j + len(ot)
     len_s = len(s)
     while j < len_s:
-        if s[j] == ' ':
+        if s[j] == " ":
             yield input_head[:5] + [current_word]
             input_head = next(input_iter)
-            current_word = ''
+            current_word = ""
         else:
             current_word += s[j]
         j += 1
     yield input_head[:5] + [current_word]
+
 
 def linearize_for_export(expr):
     if expr[0].value == djvu.const.TEXT_ZONE_CHARACTER:
@@ -85,13 +90,14 @@ def linearize_for_export(expr):
     if len(expr) == 6 and isinstance(expr[5], djvu.sexpr.StringExpression):
         yield expr[5].value
     elif expr[0].value == djvu.const.TEXT_ZONE_LINE:
-        yield ' '.join(linearize_for_export(expr[5:]))
+        yield " ".join(linearize_for_export(expr[5:]))
     else:
         for subexpr in expr:
             if not isinstance(subexpr, djvu.sexpr.ListExpression):
                 continue
             for item in linearize_for_export(subexpr):
                 yield item
+
 
 def linearize_for_import(expr):
     if expr[0].value == djvu.const.TEXT_ZONE_CHARACTER:
@@ -107,9 +113,11 @@ def linearize_for_import(expr):
             for item in linearize_for_import(subexpr):
                 yield item
 
+
 def export(sexpr, stream):
     for line in linearize_for_export(sexpr):
         print(line, file=stream)
+
 
 def import_(sexpr, stdin):
     exported = tuple(linearize_for_export(sexpr))
@@ -120,7 +128,7 @@ def import_(sexpr, stdin):
     assert len(exported) == len(inputs) == len(stdin)
     dirty = False
     for n, line, xline, input in zip(itertools.count(1), stdin, exported, inputs):
-        line = line.rstrip('\n')
+        line = line.rstrip("\n")
         if line != xline:
             input[5:] = list(mangle(xline, line, input[5:]))
             dirty = True
@@ -128,18 +136,19 @@ def import_(sexpr, stdin):
         raise NothingChanged
     return sexpr
 
+
 class NothingChanged(Exception):
     pass
+
 
 class LengthChanged(Exception):
     pass
 
+
 class CharacterZoneFound(Exception):
     pass
 
-__all__ = [
-    'import_', 'export',
-    'NothingChanged', 'CharacterZoneFound', 'LengthChanged'
-]
+
+__all__ = ["import_", "export", "NothingChanged", "CharacterZoneFound", "LengthChanged"]
 
 # vim:ts=4 sts=4 sw=4 et

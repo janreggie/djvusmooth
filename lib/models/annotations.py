@@ -13,13 +13,13 @@
 # FITNESS FOR A PARTICULAR PURPOSE. See the GNU General Public License for
 # more details.
 
-'''
+"""
 Models for annotations.
 
 See Lizardtech DjVu Reference (DjVu 3):
 - 3.3.1 Annotations.
 - 8.3.4 Annotation chunk.
-'''
+"""
 
 import weakref
 import itertools
@@ -31,22 +31,25 @@ import djvu.decode
 from djvusmooth.models import MultiPageModel, SHARED_ANNOTATIONS_PAGENO
 from djvusmooth.varietes import not_overridden, is_html_color
 
+
 class AnnotationSyntaxError(ValueError):
     pass
 
+
 class MapAreaSyntaxError(AnnotationSyntaxError):
     pass
+
 
 def parse_color(color, allow_none=False):
     if allow_none and color is None:
         return
     color = str(color).upper()
     if not is_html_color(color):
-        raise ValueError('%r is not a valid color' % (color,))
+        raise ValueError("%r is not a valid color" % (color,))
     return color
 
-class PageAnnotationsCallback(object):
 
+class PageAnnotationsCallback(object):
     @not_overridden
     def notify_node_change(self, node):
         pass
@@ -71,8 +74,8 @@ class PageAnnotationsCallback(object):
     def notify_node_replace(self, node, other_node):
         pass
 
-class Border(object):
 
+class Border(object):
     @not_overridden
     def __init__(self, *args, **kwargs):
         raise NotImplementedError
@@ -85,26 +88,27 @@ class Border(object):
     def sexpr():
         def get(self):
             return self._get_sexpr()
+
         return property(get)
 
-class NoBorder(Border):
 
+class NoBorder(Border):
     def __init__(self):
         pass
 
     def _get_sexpr(self):
         return djvu.sexpr.Expression((djvu.const.MAPAREA_BORDER_NONE,))
 
-class XorBorder(Border):
 
+class XorBorder(Border):
     def __init__(self):
         pass
 
     def _get_sexpr(self):
         return djvu.sexpr.Expression((djvu.const.MAPAREA_BORDER_XOR,))
 
-class SolidBorder(Border):
 
+class SolidBorder(Border):
     def __init__(self, color):
         self._color = parse_color(color)
 
@@ -113,13 +117,19 @@ class SolidBorder(Border):
         return self._color
 
     def _get_sexpr(self):
-        return djvu.sexpr.Expression((djvu.const.MAPAREA_BORDER_SOLID_COLOR, djvu.sexpr.Symbol(self._color)))
+        return djvu.sexpr.Expression(
+            (djvu.const.MAPAREA_BORDER_SOLID_COLOR, djvu.sexpr.Symbol(self._color))
+        )
+
 
 class BorderShadow(Border):
-
     def __init__(self, width):
         width = int(width)
-        if not djvu.const.MAPAREA_SHADOW_BORDER_MIN_WIDTH <= width <= djvu.const.MAPAREA_SHADOW_BORDER_MAX_WIDTH:
+        if (
+            not djvu.const.MAPAREA_SHADOW_BORDER_MIN_WIDTH
+            <= width
+            <= djvu.const.MAPAREA_SHADOW_BORDER_MAX_WIDTH
+        ):
             raise ValueError
         self._width = width
 
@@ -130,28 +140,32 @@ class BorderShadow(Border):
     def _get_sexpr(self):
         return djvu.sexpr.Expression((self.SYMBOL, self._width))
 
+
 class BorderShadowIn(BorderShadow):
     SYMBOL = djvu.const.MAPAREA_BORDER_SHADOW_IN
+
 
 class BorderShadowOut(BorderShadow):
     SYMBOL = djvu.const.MAPAREA_BORDER_SHADOW_OUT
 
+
 class BorderEtchedIn(BorderShadow):
     SYMBOL = djvu.const.MAPAREA_BORDER_ETCHED_IN
+
 
 class BorderEtchedOut(BorderShadow):
     SYMBOL = djvu.const.MAPAREA_BORDER_ETCHED_OUT
 
-class Annotations(MultiPageModel):
 
+class Annotations(MultiPageModel):
     def get_page_model_class(self, n):
         if n == SHARED_ANNOTATIONS_PAGENO:
             return SharedAnnotations
         else:
             return PageAnnotations
 
-class Annotation(object):
 
+class Annotation(object):
     @classmethod
     def from_sexpr(cls, sexpr, owner):
         raise NotImplementedError
@@ -164,10 +178,11 @@ class Annotation(object):
     def sexpr():
         def get(self):
             return self._get_sexpr()
+
         return property(get)
 
-class OtherAnnotation(Annotation):
 
+class OtherAnnotation(Annotation):
     def __init__(self, sexpr, owner=None):
         self._sexpr = sexpr
 
@@ -177,6 +192,7 @@ class OtherAnnotation(Annotation):
 
     def _get_sexpr(self):
         return self._sexpr
+
 
 class MapArea(Annotation):
 
@@ -208,7 +224,7 @@ class MapArea(Annotation):
     @classmethod
     def from_maparea(cls, maparea, owner):
         if maparea is None:
-            uri = comment = ''
+            uri = comment = ""
             target = None
         else:
             uri = maparea.uri
@@ -216,12 +232,7 @@ class MapArea(Annotation):
             comment = maparea.comment
         self = cls(
             *cls.DEFAULT_ARGUMENTS,
-            **dict(
-                uri=uri,
-                target=target,
-                comment=comment,
-                owner=owner
-            )
+            **dict(uri=uri, target=target, comment=comment, owner=owner)
         )
         if maparea is None:
             self._border = NoBorder()
@@ -229,7 +240,9 @@ class MapArea(Annotation):
             self._border = maparea.border
         if isinstance(self._border, BorderShadow) and not cls.can_have_shadow_border():
             self._border = NoBorder()
-        self._border_always_visible = maparea is not None and maparea.border_always_visible is True
+        self._border_always_visible = (
+            maparea is not None and maparea.border_always_visible is True
+        )
         return self
 
     @classmethod
@@ -244,11 +257,11 @@ class MapArea(Annotation):
                 symbol, uri, target = uri
                 if symbol is not djvu.const.MAPAREA_URI:
                     raise MapAreaSyntaxError
-                target = target.decode('UTF-8', 'replace')
+                target = target.decode("UTF-8", "replace")
             else:
                 target = None
-            uri = uri.decode('UTF-8')
-            comment = sexpr.next().value.decode('UTF-8', 'replace')
+            uri = uri.decode("UTF-8")
+            comment = sexpr.next().value.decode("UTF-8", "replace")
             shape = next(sexpr)
             shape_iter = iter(shape)
             cls = MAPAREA_SHAPE_TO_CLASS[shape_iter.next().value]
@@ -263,7 +276,7 @@ class MapArea(Annotation):
                     [key] = item
                     key = key.value
                     value = True
-                kwargs['s_%s' % key] = value
+                kwargs["s_%s" % key] = value
         except (StopIteration, TypeError) as ex:
             raise MapAreaSyntaxError(ex)
         return cls(*args, **kwargs)
@@ -292,34 +305,36 @@ class MapArea(Annotation):
         else:
             border_part = (border_part,)
         if self.border_always_visible is True:
-            border_part += (djvu.const.MAPAREA_BORDER_ALWAYS_VISIBLE,),
+            border_part += ((djvu.const.MAPAREA_BORDER_ALWAYS_VISIBLE,),)
         return djvu.sexpr.Expression(
             (
                 djvu.const.ANNOTATION_MAPAREA,
                 uri_part,
                 self._comment,
                 self._get_sexpr_area(),
-            ) +
-            border_part +
-            self._get_sexpr_extra()
+            )
+            + border_part
+            + self._get_sexpr_extra()
         )
 
     def _parse_border_options(self, options):
         self._border = None
         try:
-            del options['s_%s' % djvu.const.MAPAREA_BORDER_NONE]
+            del options["s_%s" % djvu.const.MAPAREA_BORDER_NONE]
         except KeyError:
             pass
         else:
             self._border = NoBorder()
         try:
-            del options['s_%s' % djvu.const.MAPAREA_BORDER_XOR]
+            del options["s_%s" % djvu.const.MAPAREA_BORDER_XOR]
         except KeyError:
             pass
         else:
             self._border = XorBorder()
         try:
-            self._border = SolidBorder(parse_color(options.pop('s_%s' % djvu.const.MAPAREA_BORDER_SOLID_COLOR)))
+            self._border = SolidBorder(
+                parse_color(options.pop("s_%s" % djvu.const.MAPAREA_BORDER_SOLID_COLOR))
+            )
         except KeyError:
             pass
         except (TypeError, ValueError) as ex:
@@ -328,7 +343,7 @@ class MapArea(Annotation):
     def _parse_shadow_border_options(self, options):
         for border_style in djvu.const.MAPAREA_SHADOW_BORDERS:
             try:
-                width = self._parse_width(options.pop('s_%s' % border_style))
+                width = self._parse_width(options.pop("s_%s" % border_style))
             except KeyError:
                 continue
             except (TypeError, ValueError) as ex:
@@ -338,7 +353,7 @@ class MapArea(Annotation):
 
     def _parse_border_always_visible(self, options):
         try:
-            del options['s_%s' % djvu.const.MAPAREA_BORDER_ALWAYS_VISIBLE]
+            del options["s_%s" % djvu.const.MAPAREA_BORDER_ALWAYS_VISIBLE]
         except KeyError:
             self._border_always_visible = False
         else:
@@ -346,42 +361,54 @@ class MapArea(Annotation):
 
     def _check_invalid_options(self, options):
         for option in options:
-            if option.startswith('s_'):
-                raise MapAreaSyntaxError('%r is invalid option for %r annotations' % (option[2:], self.SYMBOL))
+            if option.startswith("s_"):
+                raise MapAreaSyntaxError(
+                    "%r is invalid option for %r annotations"
+                    % (option[2:], self.SYMBOL)
+                )
         if options:
-            raise ValueError('%r is invalid keyword argument for this function' % (next(iter(options)),))
+            raise ValueError(
+                "%r is invalid keyword argument for this function"
+                % (next(iter(options)),)
+            )
 
     def _parse_common_options(self, options):
-        self._uri = options.pop('uri')
-        self._target = options.pop('target')
-        self._comment = options.pop('comment')
-        self._owner = options.pop('owner')
+        self._uri = options.pop("uri")
+        self._target = options.pop("target")
+        self._comment = options.pop("comment")
+        self._owner = options.pop("owner")
 
     @apply
     def uri():
         def get(self):
             return self._uri
+
         def set(self, value):
             self._uri = value
             self._notify_change()
+
         return property(get, set)
 
     @apply
     def target():
         def get(self):
             return self._target
+
         def set(self, value):
             self._target = value
             self._notify_change()
+
         return property(get, set)
 
     @apply
     def comment():
         def get(self):
             return self._comment
+
         def set(self, value):
             self._comment = value
             self._notify_change()
+
         return property(get, set)
 
     @not_overridden
@@ -404,33 +431,40 @@ class MapArea(Annotation):
     def origin():
         def get(self):
             return self._get_origin()
+
         def set(self, rect):
             self._set_origin(rect)
             self._notify_change()
+
         return property(get, set)
 
     @apply
     def rect():
         def get(self):
             return self._get_rect()
+
         def set(self, rect):
             self._set_rect(rect)
             self._notify_change()
+
         return property(get, set)
 
     @apply
     def border_always_visible():
         def get(self):
             return self._border_always_visible
+
         def set(self, value):
             self._border_always_visible = value
             self._notify_change()
+
         return property(get, set)
 
     @apply
     def border():
         def get(self):
             return self._border
+
         def set(self, border):
             if not isinstance(border, Border):
                 raise TypeError
@@ -438,6 +472,7 @@ class MapArea(Annotation):
                 raise TypeError
             self._border = border
             self._notify_change()
+
         return property(get, set)
 
     def _parse_width(self, w):
@@ -460,6 +495,7 @@ class MapArea(Annotation):
         if self._owner is None:
             return
         self._owner.notify_node_deselect(self)
+
 
 class XywhMapArea(MapArea):
 
@@ -488,6 +524,7 @@ class XywhMapArea(MapArea):
     def _get_sexpr_area(self):
         return (self.SYMBOL, self._x, self._y, self._w, self._h)
 
+
 class RectangleMapArea(XywhMapArea):
 
     SYMBOL = djvu.const.MAPAREA_SHAPE_RECTANGLE
@@ -510,14 +547,20 @@ class RectangleMapArea(XywhMapArea):
         self._parse_shadow_border_options(options)
         self._parse_border_always_visible(options)
         try:
-            self._highlight_color = parse_color(options.pop('s_%s' % djvu.const.MAPAREA_HIGHLIGHT_COLOR))
+            self._highlight_color = parse_color(
+                options.pop("s_%s" % djvu.const.MAPAREA_HIGHLIGHT_COLOR)
+            )
         except KeyError:
             self._highlight_color = None
         except (TypeError, ValueError) as ex:
             raise MapAreaSyntaxError(ex)
         try:
-            self._opacity = int(options.pop('s_%s' % djvu.const.MAPAREA_OPACITY))
-            if not (djvu.const.MAPAREA_OPACITY_MIN <= self._opacity <= djvu.const.MAPAREA_OPACITY_MAX):
+            self._opacity = int(options.pop("s_%s" % djvu.const.MAPAREA_OPACITY))
+            if not (
+                djvu.const.MAPAREA_OPACITY_MIN
+                <= self._opacity
+                <= djvu.const.MAPAREA_OPACITY_MAX
+            ):
                 raise MapAreaSyntaxError
         except KeyError:
             self._opacity = djvu.const.MAPAREA_OPACITY_DEFAULT
@@ -529,31 +572,45 @@ class RectangleMapArea(XywhMapArea):
     def _get_sexpr_extra(self):
         result = []
         if self._opacity != djvu.const.MAPAREA_OPACITY_DEFAULT:
-            result += (djvu.const.MAPAREA_OPACITY, self._opacity),
+            result += ((djvu.const.MAPAREA_OPACITY, self._opacity),)
         if self._highlight_color is not None:
-            result += (djvu.const.MAPAREA_HIGHLIGHT_COLOR, djvu.sexpr.Symbol(self._highlight_color)),
+            result += (
+                (
+                    djvu.const.MAPAREA_HIGHLIGHT_COLOR,
+                    djvu.sexpr.Symbol(self._highlight_color),
+                ),
+            )
         return tuple(result)
 
     @apply
     def opacity():
         def get(self):
             return self._opacity
+
         def set(self, value):
             value = int(value)
-            if not (djvu.const.MAPAREA_OPACITY_MIN <= self._opacity <= djvu.const.MAPAREA_OPACITY_MAX):
+            if not (
+                djvu.const.MAPAREA_OPACITY_MIN
+                <= self._opacity
+                <= djvu.const.MAPAREA_OPACITY_MAX
+            ):
                 raise ValueError
             self._opacity = value
             self._notify_change()
+
         return property(get, set)
 
     @apply
     def highlight_color():
         def get(self):
             return self._highlight_color
+
         def set(self, value):
             self._highlight_color = parse_color(value, allow_none=True)
             self._notify_change()
+
         return property(get, set)
+
 
 class OvalMapArea(XywhMapArea):
 
@@ -569,16 +626,16 @@ class OvalMapArea(XywhMapArea):
     def _get_sexpr_extra(self):
         return ()
 
+
 class PolygonMapArea(MapArea):
 
     SYMBOL = djvu.const.MAPAREA_SHAPE_POLYGON
     DEFAULT_ARGUMENTS = (0, 0, 32, 0, 32, 32, 0, 32, 32, 32)
 
     def _get_sexpr_area(self):
-        return djvu.sexpr.Expression(itertools.chain(
-            (self.SYMBOL,),
-            itertools.chain(*self._coords)
-        ))
+        return djvu.sexpr.Expression(
+            itertools.chain((self.SYMBOL,), itertools.chain(*self._coords))
+        )
 
     def _get_sexpr_extra(self):
         return ()
@@ -621,14 +678,15 @@ class PolygonMapArea(MapArea):
     def coordinates():
         def get(self):
             return self._coords
+
         return property(get)
 
     def __init__(self, *coords, **options):
         n_coords = len(coords)
         if n_coords & 1:
-            raise ValueError('polygon with %2.f vertices' % (n_coords / 2.0))
+            raise ValueError("polygon with %2.f vertices" % (n_coords / 2.0))
         if n_coords < 6:
-            raise ValueError('polygon with %d vertices' % (n_coords // 2))
+            raise ValueError("polygon with %d vertices" % (n_coords // 2))
         coords = (int(x) for x in coords)
         self._coords = list(zip(coords, coords))
         self._parse_border_options(options)
@@ -636,22 +694,25 @@ class PolygonMapArea(MapArea):
         self._parse_common_options(options)
         self._check_invalid_options(options)
 
+
 class LineMapArea(MapArea):
 
     SYMBOL = djvu.const.MAPAREA_SHAPE_LINE
     DEFAULT_ARGUMENTS = (0, 0, 32, 32)
 
     def _get_sexpr_area(self):
-        return djvu.sexpr.Expression((self.SYMBOL, self._x0, self._y0, self._x1, self._y1))
+        return djvu.sexpr.Expression(
+            (self.SYMBOL, self._x0, self._y0, self._x1, self._y1)
+        )
 
     def _get_sexpr_extra(self):
         result = []
         if self._line_arrow:
-            result += (djvu.const.MAPAREA_ARROW,),
+            result += ((djvu.const.MAPAREA_ARROW,),)
         if self._line_width != djvu.const.MAPAREA_LINE_MIN_WIDTH:
-            result += (djvu.const.MAPAREA_LINE_WIDTH, self._line_width),
+            result += ((djvu.const.MAPAREA_LINE_WIDTH, self._line_width),)
         if self._line_color != djvu.const.MAPAREA_LINE_COLOR_DEFAULT:
-            result += (djvu.const.MAPAREA_LINE_COLOR, self._line_color),
+            result += ((djvu.const.MAPAREA_LINE_COLOR, self._line_color),)
         return tuple(result)
 
     def _get_rect(self):
@@ -667,19 +728,24 @@ class LineMapArea(MapArea):
     def point_from():
         def get(self):
             return self._x0, self._y0
+
         return property(get)
 
     @apply
     def point_to():
         def get(self):
             return self._x1, self._y1
+
         return property(get)
 
     @classmethod
     def from_maparea(cls, maparea, owner):
         self = super(LineMapArea, cls).from_maparea(maparea, owner)
         if isinstance(maparea, LineMapArea):
-            (self._x0, self._y0), (self._x1, self._y1) = maparea.point_from, maparea.point_to
+            (self._x0, self._y0), (self._x1, self._y1) = (
+                maparea.point_from,
+                maparea.point_to,
+            )
             self._line_arrow = maparea.line_arrow
             self._line_width = maparea.line_width
             self._line_color = maparea.line_color
@@ -690,13 +756,13 @@ class LineMapArea(MapArea):
     def __init__(self, x1, y1, x2, y2, **options):
         self._x0, self._y0, self._x1, self._y1 = map(int, (x1, y1, x2, y2))
         try:
-            del options['s_%s' % djvu.const.MAPAREA_ARROW]
+            del options["s_%s" % djvu.const.MAPAREA_ARROW]
         except KeyError:
             self._line_arrow = False
         else:
             self._line_arrow = True
         try:
-            self._line_width = int(options.pop('s_%s' % djvu.const.MAPAREA_LINE_WIDTH))
+            self._line_width = int(options.pop("s_%s" % djvu.const.MAPAREA_LINE_WIDTH))
             if self._line_width < djvu.const.MAPAREA_LINE_MIN_WIDTH:
                 raise ValueError
         except KeyError:
@@ -704,7 +770,9 @@ class LineMapArea(MapArea):
         except (TypeError, ValueError) as ex:
             raise MapAreaSyntaxError(ex)
         try:
-            self._line_color = parse_color(options.pop('s_%s' % djvu.const.MAPAREA_LINE_COLOR))
+            self._line_color = parse_color(
+                options.pop("s_%s" % djvu.const.MAPAREA_LINE_COLOR)
+            )
         except KeyError:
             self._line_color = djvu.const.MAPAREA_LINE_COLOR_DEFAULT
         except (TypeError, ValueError) as ex:
@@ -717,36 +785,45 @@ class LineMapArea(MapArea):
     def line_width():
         def get(self):
             return self._line_width
+
         def set(self, value):
             self._line_width = value
             self._notify_change()
+
         return property(get, set)
 
     @apply
     def line_color():
         def get(self):
             return self._line_color
+
         def set(self, value):
             self._line_color = parse_color(value)
             self._notify_change()
+
         return property(get, set)
 
     @apply
     def line_arrow():
         def get(self):
             return self._line_arrow
+
         def set(self, value):
             self._line_arrow = value
             self._notify_change()
+
         return property(get, set)
 
     @apply
     def border_always_visible():
         def get(self):
             return NotImplemented
+
         def set(self, value):
             pass  # FIXME?
+
         return property(get, set)
+
 
 class TextMapArea(XywhMapArea):
 
@@ -769,19 +846,23 @@ class TextMapArea(XywhMapArea):
         # is not relevant for text annotations. Nevertheless that option can be found
         # in the wild, e.g. in the ``lizard2005-antz.djvu`` file.
         try:
-            self._background_color = parse_color(options.pop('s_%s' % djvu.const.MAPAREA_BACKGROUND_COLOR))
+            self._background_color = parse_color(
+                options.pop("s_%s" % djvu.const.MAPAREA_BACKGROUND_COLOR)
+            )
         except KeyError:
             self._background_color = None
         except (TypeError, ValueError) as ex:
             raise MapAreaSyntaxError(ex)
         try:
-            self._text_color = parse_color(options.pop('s_%s' % djvu.const.MAPAREA_TEXT_COLOR))
+            self._text_color = parse_color(
+                options.pop("s_%s" % djvu.const.MAPAREA_TEXT_COLOR)
+            )
         except KeyError:
             self._text_color = djvu.const.MAPAREA_TEXT_COLOR_DEFAULT
         except (TypeError, ValueError) as ex:
             raise MapAreaSyntaxError(ex)
         try:
-            del options['s_%s' % djvu.const.MAPAREA_PUSHPIN]
+            del options["s_%s" % djvu.const.MAPAREA_PUSHPIN]
         except KeyError:
             self._pushpin = False
         else:
@@ -792,39 +873,53 @@ class TextMapArea(XywhMapArea):
     def _get_sexpr_extra(self):
         result = []
         if self._background_color is not None:
-            result += (djvu.const.MAPAREA_BACKGROUND_COLOR, djvu.sexpr.Symbol(self._background_color)),
+            result += (
+                (
+                    djvu.const.MAPAREA_BACKGROUND_COLOR,
+                    djvu.sexpr.Symbol(self._background_color),
+                ),
+            )
         if self._text_color != djvu.const.MAPAREA_TEXT_COLOR_DEFAULT:
-            result += (djvu.const.MAPAREA_TEXT_COLOR, djvu.sexpr.Symbol(self._text_color)),
+            result += (
+                (djvu.const.MAPAREA_TEXT_COLOR, djvu.sexpr.Symbol(self._text_color)),
+            )
         if self._pushpin:
-            result += (djvu.const.MAPAREA_PUSHPIN,),
+            result += ((djvu.const.MAPAREA_PUSHPIN,),)
         return tuple(result)
 
     @apply
     def background_color():
         def get(self):
             return self._background_color
+
         def set(self, color):
             self._background_color = parse_color(color, allow_none=True)
             self._notify_change()
+
         return property(get, set)
 
     @apply
     def text_color():
         def get(self):
             return self._text_color
+
         def set(self, color):
             self._text_color = parse_color(color)
             self._notify_change()
+
         return property(get, set)
 
     @apply
     def pushpin():
         def get(self):
             return self._pushpin
+
         def set(self, value):
             self._pushpin = value
             self._notify_change()
+
         return property(get, set)
+
 
 MAPAREA_SHADOW_BORDER_TO_CLASS = dict(
     (cls.SYMBOL, cls)
@@ -836,12 +931,10 @@ MAPAREA_SHAPE_TO_CLASS = dict(
     for cls in (RectangleMapArea, OvalMapArea, PolygonMapArea, LineMapArea, TextMapArea)
 )
 
-ANNOTATION_TYPE_TO_CLASS = {
-    djvu.const.ANNOTATION_MAPAREA: MapArea
-}
+ANNOTATION_TYPE_TO_CLASS = {djvu.const.ANNOTATION_MAPAREA: MapArea}
+
 
 class PageAnnotations(object):
-
     def __init__(self, n, original_data):
         self._old_data = original_data
         self._callbacks = weakref.WeakKeyDictionary()
@@ -866,7 +959,7 @@ class PageAnnotations(object):
         return result
 
     def add_maparea(self, node):
-        self._data[MapArea] += node,
+        self._data[MapArea] += (node,)
         self.notify_node_add(node)
 
     def remove_maparea(self, node):
@@ -897,7 +990,9 @@ class PageAnnotations(object):
         if not self._dirty:
             return
         self.export_select(djvused)
-        djvused.set_annotations(node.sexpr for nodes in self._data.values() for node in nodes)
+        djvused.set_annotations(
+            node.sexpr for nodes in self._data.values() for node in nodes
+        )
 
     def export_select(self, djvused):
         djvused.select(self._n + 1)
@@ -930,9 +1025,10 @@ class PageAnnotations(object):
         for callback in self._callbacks:
             callback.notify_node_deselect(node)
 
-class SharedAnnotations(object):
 
+class SharedAnnotations(object):
     def export_select(self, djvused):
         djvused.create_shared_annotations()
+
 
 # vim:ts=4 sts=4 sw=4 et

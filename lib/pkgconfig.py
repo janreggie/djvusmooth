@@ -15,23 +15,25 @@
 
 from . import ipc
 
+
 class IOError(IOError):
     pass
 
-class Package(object):
 
+class Package(object):
     def __init__(self, name):
         self._name = name
 
     def variable(self, variable_name):
         pkgconfig = ipc.Subprocess(
-            ['pkg-config', '--variable=' + str(variable_name), self._name],
+            ["pkg-config", "--variable=" + str(variable_name), self._name],
             stdout=ipc.PIPE,
-            stderr=ipc.PIPE
+            stderr=ipc.PIPE,
         )
         stdout, stderr = pkgconfig.communicate()
         if pkgconfig.returncode:
             raise IOError(stderr.strip())
         return stdout.strip()
+
 
 # vim:ts=4 sts=4 sw=4 et

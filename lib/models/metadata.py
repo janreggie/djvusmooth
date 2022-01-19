@@ -14,26 +14,26 @@
 # more details.
 
 
-'''
+"""
 Models for metadata.
 
 See ``djvuchanges.txt``:
 - 4. Metadata Annotations.
 - 5. Document Annotations and Metadata.
-'''
+"""
 
 from djvusmooth.models import MultiPageModel, SHARED_ANNOTATIONS_PAGENO
 
-class Metadata(MultiPageModel):
 
+class Metadata(MultiPageModel):
     def get_page_model_class(self, n):
         if n == SHARED_ANNOTATIONS_PAGENO:
             return SharedMetadata
         else:
             return PageMetadata
 
-class PageMetadata(dict):
 
+class PageMetadata(dict):
     def __init__(self, n, original_data):
         self._old_data = None
         self._dirty = False
@@ -46,6 +46,7 @@ class PageMetadata(dict):
 
     def clone(self):
         from copy import copy
+
         return copy(self)
 
     def load(self, original_data, overwrite=False):
@@ -82,11 +83,12 @@ class PageMetadata(dict):
         except KeyError:
             return True
 
-class SharedMetadata(PageMetadata):
 
+class SharedMetadata(PageMetadata):
     def export_select(self, djvused):
         djvused.create_shared_annotations()
 
-__all__ = ['Metadata', 'PageMetadata', 'SharedMetadata']
+
+__all__ = ["Metadata", "PageMetadata", "SharedMetadata"]
 
 # vim:ts=4 sts=4 sw=4 et

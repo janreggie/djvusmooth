@@ -13,13 +13,13 @@
 # FITNESS FOR A PARTICULAR PURPOSE. See the GNU General Public License for
 # more details.
 
-'''
+"""
 Models for hidden text.
 
 See Lizardtech DjVu Reference (DjVu 3):
 - 3.3.2 Hidden text.
 - 8.3.5 Text Chunk.
-'''
+"""
 
 import copy
 import weakref
@@ -31,8 +31,8 @@ import djvu.sexpr
 from djvusmooth.varietes import not_overridden, wref
 from djvusmooth.models import MultiPageModel
 
-class Node(object):
 
+class Node(object):
     def __new__(cls, sexpr, owner):
         if len(sexpr) == 6 and isinstance(sexpr[5], djvu.sexpr.StringExpression):
             cls = LeafNode
@@ -61,57 +61,69 @@ class Node(object):
     def separator():
         def get(self):
             return djvu.const.TEXT_ZONE_SEPARATORS[self._type]
+
         return property(get)
 
     @apply
     def x():
         def get(self):
             return self._x
+
         def set(self, value):
             self._x = value
             self._notify_change()
+
         return property(get, set)
 
     @apply
     def y():
         def get(self):
             return self._y
+
         def set(self, value):
             self._y = value
             self._notify_change()
+
         return property(get, set)
 
     @apply
     def w():
         def get(self):
             return self._w
+
         def set(self, value):
             self._w = value
             self._notify_change()
+
         return property(get, set)
 
     @apply
     def h():
         def get(self):
             return self._h
+
         def set(self, value):
             self._h = value
             self._notify_change()
+
         return property(get, set)
 
     @apply
     def rect():
         def get(self):
             return self._x, self._y, self._w, self._h
+
         def set(self, value):
             self._x, self._y, self._w, self._h = value
             self._notify_change()
+
         return property(get, set)
 
     @apply
     def type():
         def get(self):
             return self._type
+
         return property(get)
 
     @apply
@@ -121,6 +133,7 @@ class Node(object):
             if link is None:
                 raise StopIteration
             return link
+
         return property(get)
 
     @apply
@@ -130,6 +143,7 @@ class Node(object):
             if link is None:
                 raise StopIteration
             return link
+
         return property(get)
 
     @apply
@@ -139,12 +153,14 @@ class Node(object):
             if link is None:
                 raise StopIteration
             return link
+
         return property(get)
 
     @apply
     def left_child():
         def get(self):
             raise StopIteration
+
         return property(get)
 
     def delete(self):
@@ -178,14 +194,14 @@ class Node(object):
     def _notify_children_change(self):
         return self._owner.notify_node_children_change(self)
 
-class LeafNode(Node):
 
+class LeafNode(Node):
     def is_leaf(self):
         return True
 
     def __init__(self, sexpr, owner):
         Node.__init__(self, sexpr, owner)
-        self._text = sexpr[5].value.decode('UTF-8', 'replace')
+        self._text = sexpr[5].value.decode("UTF-8", "replace")
 
     def _construct_sexpr(self):
         x, y, w, h = self.x, self.y, self.w, self.h
@@ -195,13 +211,15 @@ class LeafNode(Node):
     def text():
         def get(self):
             return self._text
+
         def set(self, value):
             self._text = value
             self._notify_change()
+
         return property(get, set)
 
     def remove_child(self, child):
-        raise TypeError('{0!r} cannot have children'.format(self))
+        raise TypeError("{0!r} cannot have children".format(self))
 
     def strip(self, zone_type):
         if self.type <= zone_type:
@@ -217,8 +235,8 @@ class LeafNode(Node):
     def __iter__(self):
         raise TypeError
 
-class InnerNode(Node):
 
+class InnerNode(Node):
     def is_inner(self):
         return True
 
@@ -244,12 +262,9 @@ class InnerNode(Node):
             child_sexprs = (child.sexpr for child in self)
         else:
             # FIXME: this needs a better solution
-            child_sexprs = (djvu.sexpr.Expression(''),)
+            child_sexprs = (djvu.sexpr.Expression(""),)
         return djvu.sexpr.Expression(
-            itertools.chain(
-                (self.type, x, y, x + w, y + h),
-                child_sexprs
-            )
+            itertools.chain((self.type, x, y, x + w, y + h), child_sexprs)
         )
 
     @apply
@@ -260,6 +275,7 @@ class InnerNode(Node):
     def left_child():
         def get(self):
             return next(iter(self._children))
+
         return property(get)
 
     def remove_child(self, child):
@@ -278,7 +294,9 @@ class InnerNode(Node):
             texts = [text for text, child_separator in stripped_children]
             return child_separator.join(texts), self.separator
         else:
-            node_children = [child for child in stripped_children if isinstance(child, Node)]
+            node_children = [
+                child for child in stripped_children if isinstance(child, Node)
+            ]
             if node_children:
                 self._set_children(node_children)
                 return self
@@ -286,12 +304,17 @@ class InnerNode(Node):
                 texts = [text for text, child_separator in stripped_children]
                 text = child_separator.join(texts)
                 return Node(
-                    djvu.sexpr.Expression((
-                        self.type,
-                        self.x, self.y,
-                        self.x + self.w, self.y + self.h,
-                        text
-                    )), self._owner
+                    djvu.sexpr.Expression(
+                        (
+                            self.type,
+                            self.x,
+                            self.y,
+                            self.x + self.w,
+                            self.y + self.h,
+                            text,
+                        )
+                    ),
+                    self._owner,
                 )
         return self
 
@@ -304,13 +327,13 @@ class InnerNode(Node):
     def __iter__(self):
         return iter(self._children)
 
-class Text(MultiPageModel):
 
+class Text(MultiPageModel):
     def get_page_model_class(self, n):
         return PageText
 
-class PageTextCallback(object):
 
+class PageTextCallback(object):
     @not_overridden
     def notify_node_change(self, node):
         pass
@@ -331,8 +354,8 @@ class PageTextCallback(object):
     def notify_tree_change(self, node):
         pass
 
-class PageText(object):
 
+class PageText(object):
     def __init__(self, n, original_data):
         self._callbacks = weakref.WeakKeyDictionary()
         self._original_sexpr = original_data
@@ -348,6 +371,7 @@ class PageText(object):
     def root():
         def get(self):
             return self._root
+
         return property(get)
 
     @apply
@@ -356,16 +380,20 @@ class PageText(object):
             if self._root is None:
                 return None
             return self._root.sexpr
+
         def set(self, sexpr):
             if sexpr:
                 self._root = Node(sexpr, self)
             else:
                 self._root = None
             self.notify_tree_change()
+
         return property(get, set)
 
     def strip(self, zone_type):
-        zone_type = djvu.const.get_text_zone_type(zone_type)  # ensure it's not a plain Symbol
+        zone_type = djvu.const.get_text_zone_type(
+            zone_type
+        )  # ensure it's not a plain Symbol
         if self._root is None:
             return
         stripped_root = self._root.strip(zone_type)
@@ -425,6 +453,7 @@ class PageText(object):
             return ()
         return _get_leafs(self.root)
 
+
 def _get_preorder_nodes(node):
     yield node
     if isinstance(node, LeafNode):
@@ -433,12 +462,14 @@ def _get_preorder_nodes(node):
         for item in _get_preorder_nodes(child):
             yield item
 
+
 def _get_postorder_nodes(node):
     if isinstance(node, InnerNode):
         for child in node:
             for item in _get_postorder_nodes(child):
                 yield item
     yield node
+
 
 def _get_leafs(node):
     if isinstance(node, LeafNode):
@@ -448,6 +479,7 @@ def _get_leafs(node):
             for item in _get_leafs(child):
                 yield item
 
-__all__ = ['Text', 'PageText']
+
+__all__ = ["Text", "PageText"]
 
 # vim:ts=4 sts=4 sw=4 et

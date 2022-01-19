@@ -19,17 +19,17 @@ import tempfile
 
 from . import ipc
 
-class temporary_file(object):
 
+class temporary_file(object):
     def __init__(self, name):
         self.dir = self.fp = None
-        self.dir = tempfile.mkdtemp(prefix='djvusmooth.')
+        self.dir = tempfile.mkdtemp(prefix="djvusmooth.")
         self.name = os.path.join(self.dir, name)
-        self.fp = open(self.name, 'w+')
+        self.fp = open(self.name, "w+")
 
     def _reopen(self):
         if self.fp is None:
-            self.fp = open(self.name, 'r+')
+            self.fp = open(self.name, "r+")
 
     def flush(self):
         if self.fp is None:
@@ -66,17 +66,17 @@ class temporary_file(object):
     def __exit__(self, exc, value, tb):
         self.close()
 
-class Editor(object):
 
+class Editor(object):
     def __call__(self, path):
         raise NotImplementedError
 
-class RunMailcapEditor(object):
 
+class RunMailcapEditor(object):
     def __call__(self, path):
         path = os.path.abspath(path)
         edit = ipc.Subprocess(
-            ['edit', 'text/plain:{path}'.format(path=path)],
+            ["edit", "text/plain:{path}".format(path=path)],
             stdin=ipc.PIPE,
             stdout=ipc.PIPE,
         )
@@ -84,8 +84,8 @@ class RunMailcapEditor(object):
         edit.stdout.close()
         edit.wait()
 
-class CustomEditor(object):
 
+class CustomEditor(object):
     def __init__(self, command, *extra_args):
         self._command = [command]
         self._command += extra_args
@@ -100,5 +100,6 @@ class CustomEditor(object):
         edit.stdin.close()
         edit.stdout.close()
         edit.wait()
+
 
 # vim:ts=4 sts=4 sw=4 et

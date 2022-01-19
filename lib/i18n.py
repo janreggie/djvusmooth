@@ -17,26 +17,29 @@ import gettext
 import os
 import sys
 
-for dir in os.path.join(os.path.dirname(sys.argv[0]), 'locale'), None:
+for dir in os.path.join(os.path.dirname(sys.argv[0]), "locale"), None:
     try:
-        _ = gettext.translation('djvusmooth', dir).ugettext
+        _ = gettext.translation("djvusmooth", dir).ugettext
         break
     except IOError:
         pass
 else:
+
     def _(s):
         return s
+
+
 del dir
 
 # Some dummy translations:
 if False:
-    _('page')
-    _('column')
-    _('region')
-    _('para')
-    _('line')
-    _('word')
-    _('char')
-    _('bookmarks')
+    _("page")
+    _("column")
+    _("region")
+    _("para")
+    _("line")
+    _("word")
+    _("char")
+    _("bookmarks")
 
 # vim:ts=4 sts=4 sw=4 et
