@@ -23,6 +23,7 @@ See Lizardtech DjVu Reference (DjVu 3):
 
 import weakref
 import itertools
+from apply import apply
 
 import djvu.sexpr
 import djvu.const

@@ -30,7 +30,7 @@ else:
 
     try:
         djvulibre_bin_path = os.path.join(
-            pkgconfig.Package("ddjvuapi").variable("exec_prefix"), "bin"
+            pkgconfig.Package("ddjvuapi").variable("exec_prefix").decode("utf-8"), "bin"
         )
     except (IOError, OSError):
         pass

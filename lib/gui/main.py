@@ -21,6 +21,7 @@ import locale
 import os.path
 import threading
 from queue import Queue, Empty as QueueEmpty
+from apply import apply
 
 import djvusmooth.dependencies
 
@@ -33,7 +34,14 @@ import djvu.decode
 import djvu.const
 
 from djvusmooth.djvused import StreamEditor
-from djvusmooth.gui.page import PageWidget, PercentZoom, OneToOneZoom, StretchZoom, FitWidthZoom, FitPageZoom
+from djvusmooth.gui.page import (
+    PageWidget,
+    PercentZoom,
+    OneToOneZoom,
+    StretchZoom,
+    FitWidthZoom,
+    FitPageZoom,
+)
 from djvusmooth.gui.page import RENDER_NONRASTER_TEXT, RENDER_NONRASTER_MAPAREA
 from djvusmooth.gui.metadata import MetadataDialog
 from djvusmooth.gui.flatten_text import FlattenTextDialog
@@ -54,8 +62,8 @@ from djvusmooth import __version__, __author__
 
 from djvusmooth.i18n import _
 
-APPLICATION_NAME = 'djvusmooth'
-LICENSE = 'GPL-2'
+APPLICATION_NAME = "djvusmooth"
+LICENSE = "GPL-2"
 
 MENU_ICON_SIZE = (16, 16)
 
@@ -63,22 +71,22 @@ WxDjVuMessage, wx.EVT_DJVU_MESSAGE = wx.lib.newevent.NewEvent()
 
 system_encoding = locale.getpreferredencoding()
 
+
 class OpenDialog(wx.FileDialog):
 
-    __wildcard = _(
-        'DjVu files (*.djvu, *.djv)|*.djvu;*.djv|'
-        'All files|*'
-    )
+    __wildcard = _("DjVu files (*.djvu, *.djv)|*.djvu;*.djv|" "All files|*")
 
     def __init__(self, parent):
-        wx.FileDialog.__init__(self, parent,
+        wx.FileDialog.__init__(
+            self,
+            parent,
             style=wx.FD_OPEN,
             wildcard=self.__wildcard,
-            message=_('Open a DjVu document')
+            message=_("Open a DjVu document"),
         )
 
-class TextModel(models.text.Text):
 
+class TextModel(models.text.Text):
     def __init__(self, document):
         models.text.Text.__init__(self)
         self._document = document
@@ -91,8 +99,8 @@ class TextModel(models.text.Text):
         text.wait()
         return text.sexpr
 
-class OutlineModel(models.outline.Outline):
 
+class OutlineModel(models.outline.Outline):
     def __init__(self, document):
         self._document = document
         models.outline.Outline.__init__(self)
@@ -104,6 +112,7 @@ class OutlineModel(models.outline.Outline):
         outline = self._document.outline
         outline.wait()
         return outline.sexpr
+
 
 class PageProxy(object):
     def __init__(self, page, text_model, annotations_model):
@@ -129,8 +138,8 @@ class PageProxy(object):
     def register_annotations_callback(self, callback):
         self._annotations.register_callback(callback)
 
-class DocumentProxy(object):
 
+class DocumentProxy(object):
     def __init__(self, document, outline):
         self._document = document
         self._outline = outline
@@ -142,8 +151,8 @@ class DocumentProxy(object):
     def register_outline_callback(self, callback):
         self._outline.register_callback(callback)
 
-class AnnotationsModel(models.annotations.Annotations):
 
+class AnnotationsModel(models.annotations.Annotations):
     def __init__(self, document_path):
         models.annotations.Annotations.__init__(self)
         self.__djvused = StreamEditor(document_path)
@@ -158,14 +167,14 @@ class AnnotationsModel(models.annotations.Annotations):
         else:
             djvused.select(n + 1)
         djvused.print_annotations()
-        s = '(%s)' % djvused.commit()  # FIXME: optimize
+        s = "(%s)" % djvused.commit()  # FIXME: optimize
         try:
             return djvu.sexpr.Expression.from_string(s)
         except djvu.sexpr.ExpressionSyntaxError:
             raise  # FIXME
 
-class MetadataModel(models.metadata.Metadata):
 
+class MetadataModel(models.metadata.Metadata):
     def __init__(self, document):
         models.metadata.Metadata.__init__(self)
         self._document = document
@@ -194,8 +203,8 @@ class MetadataModel(models.metadata.Metadata):
                 result[k] = v
         return result
 
-class PageTextCallback(models.text.PageTextCallback):
 
+class PageTextCallback(models.text.PageTextCallback):
     def __init__(self, owner):
         self._owner = owner
 
@@ -207,19 +216,19 @@ class PageTextCallback(models.text.PageTextCallback):
 
     def notify_node_select(self, node):
         type = str(node.type)
-        text = _('[Text layer]') + ' ' + _(type)
+        text = _("[Text layer]") + " " + _(type)
         if node.is_leaf():
-            text += ': %s' % node.text
+            text += ": %s" % node.text
         self._owner.SetStatusText(text)
 
     def notify_node_deselect(self, node):
-        self._owner.SetStatusText('')
+        self._owner.SetStatusText("")
 
     def notify_tree_change(self, node):
         self._owner.dirty = True
 
-class OutlineCallback(models.outline.OutlineCallback):
 
+class OutlineCallback(models.outline.OutlineCallback):
     def __init__(self, owner):
         self._owner = owner
 
@@ -234,39 +243,43 @@ class OutlineCallback(models.outline.OutlineCallback):
 
     def notify_node_select(self, node):
         try:
-            self._owner.SetStatusText(_('Link: %s') % node.uri)
+            self._owner.SetStatusText(_("Link: %s") % node.uri)
         except AttributeError:
             pass
 
-class PageAnnotationsCallback(models.annotations.PageAnnotationsCallback):
 
+class PageAnnotationsCallback(models.annotations.PageAnnotationsCallback):
     def __init__(self, owner):
         self._owner = owner
 
     def notify_node_change(self, node):
         self._owner.dirty = True
+
     def notify_node_add(self, node):
         self._owner.dirty = True
+
     def notify_node_delete(self, node):
         self._owner.dirty = True
+
     def notify_node_replace(self, node, other_node):
         self._owner.dirty = True
 
     def notify_node_select(self, node):
         try:
-            self._owner.SetStatusText(_('Link: %s') % node.uri)
+            self._owner.SetStatusText(_("Link: %s") % node.uri)
         except AttributeError:
             pass
 
     def notify_node_deselect(self, node):
-        self._owner.SetStatusText('')
+        self._owner.SetStatusText("")
+
 
 class ScrolledPanel(wx.lib.scrolledpanel.ScrolledPanel):
-
     def OnChildFocus(self, event):
         # We *don't* want to scroll to the child window which just got the focus.
         # So just skip the event:
         event.Skip()
+
 
 def skip_if_being_deleted(method):
     @functools.wraps(method)
@@ -277,54 +290,69 @@ def skip_if_being_deleted(method):
             # would provoke segmentation fault.
             return
         return method(self, *args, **kwargs)
+
     return method_wrapper
 
-class MainWindow(wx.Frame):
 
+class MainWindow(wx.Frame):
     @apply
     def default_xywh():
         def get(self):
             return tuple(
-                self._config.read_int('main_window_%s' % key, value)
-                for key, value
-                in (('x', -1), ('y', -1), ('width', 640), ('height', 480))
+                self._config.read_int("main_window_%s" % key, value)
+                for key, value in (
+                    ("x", -1),
+                    ("y", -1),
+                    ("width", 640),
+                    ("height", 480),
+                )
             )
+
         def set(self, xywh):
             (x, y, w, h) = xywh
             for key, value in dict(x=x, y=y, width=w, height=h).items():
-                self._config['main_window_%s' % key] = value
+                self._config["main_window_%s" % key] = value
+
         return property(get, set)
 
     @apply
     def default_splitter_sash():
         def get(self):
-            return self._config.read_int('main_window_splitter_sash', 160)
+            return self._config.read_int("main_window_splitter_sash", 160)
+
         def set(self, value):
-            self._config['main_window_splitter_sash'] = value
+            self._config["main_window_splitter_sash"] = value
+
         return property(get, set)
 
     @apply
     def default_sidebar_shown():
         def get(self):
-            return self._config.read_bool('main_window_sidebar_shown', True)
+            return self._config.read_bool("main_window_sidebar_shown", True)
+
         def set(self, value):
-            self._config['main_window_sidebar_shown'] = value
+            self._config["main_window_sidebar_shown"] = value
+
         return property(get, set)
 
     @apply
     def default_editor_path():
         def get(self):
-            return self._config.read('external_editor', '') or None
+            return self._config.read("external_editor", "") or None
+
         def set(self, value):
-            self._config['external_editor'] = value or ''
+            self._config["external_editor"] = value or ""
+
         return property(get, set)
 
     @apply
     def default_open_dir():
         def get(self):
-            return self._config.read('open_dir', '')
+            return self._config.read("open_dir", "")
+
         def set(self, value):
-            self._config['open_dir'] = value or ''
+            self._config["open_dir"] = value or ""
+
         return property(get, set)
 
     def save_defaults(self):
@@ -352,20 +380,23 @@ class MainWindow(wx.Frame):
         self._outline_callback = OutlineCallback(self)
         self.status_bar = self.CreateStatusBar(2, style=wx.ST_SIZEGRIP)
         self.splitter = wx.SplitterWindow(self, style=wx.SP_LIVE_UPDATE)
-        self.splitter.Bind(wx.EVT_SPLITTER_SASH_POS_CHANGED, self.on_splitter_sash_changed)
+        self.splitter.Bind(
+            wx.EVT_SPLITTER_SASH_POS_CHANGED, self.on_splitter_sash_changed
+        )
         self.sidebar = wx.Notebook(self.splitter, wx.ID_ANY)
         self.text_browser = TextBrowser(self.sidebar)
         self.outline_browser = OutlineBrowser(self.sidebar)
         self.maparea_browser = MapAreaBrowser(self.sidebar)
-        self.sidebar.AddPage(self.outline_browser, _('Outline'))
-        self.sidebar.AddPage(self.maparea_browser, _('Hyperlinks'))
-        self.sidebar.AddPage(self.text_browser, _('Text'))
+        self.sidebar.AddPage(self.outline_browser, _("Outline"))
+        self.sidebar.AddPage(self.maparea_browser, _("Hyperlinks"))
+        self.sidebar.AddPage(self.text_browser, _("Text"))
         self.sidebar.Bind(
             wx.EVT_NOTEBOOK_PAGE_CHANGED,
             self._on_sidebar_page_changed(
                 self.on_display_no_nonraster,
                 self.on_display_maparea,
-                self.on_display_text)
+                self.on_display_text,
+            ),
         )
         self.scrolled_panel = ScrolledPanel(self.splitter)
         self.splitter.SetSashGravity(0.1)
@@ -389,15 +420,17 @@ class MainWindow(wx.Frame):
 
     def create_menus(self):
         menu_bar = wx.MenuBar()
-        menu_bar.Append(self._create_file_menu(), _('&File'))
-        menu_bar.Append(self._create_edit_menu(), _('&Edit'))
-        menu_bar.Append(self._create_view_menu(), _('&View'))
-        menu_bar.Append(self._create_go_menu(), _('&Go'))
-        menu_bar.Append(self._create_settings_menu(), _('&Settings'))
-        menu_bar.Append(self._create_help_menu(), _('&Help'))
+        menu_bar.Append(self._create_file_menu(), _("&File"))
+        menu_bar.Append(self._create_edit_menu(), _("&Edit"))
+        menu_bar.Append(self._create_view_menu(), _("&View"))
+        menu_bar.Append(self._create_go_menu(), _("&Go"))
+        menu_bar.Append(self._create_settings_menu(), _("&Settings"))
+        menu_bar.Append(self._create_help_menu(), _("&Help"))
         self.SetMenuBar(menu_bar)
 
-    def _create_menu_item(self, menu, caption, help, method, style=wx.ITEM_NORMAL, icon=None, id=wx.ID_ANY):
+    def _create_menu_item(
+        self, menu, caption, help, method, style=wx.ITEM_NORMAL, icon=None, id=wx.ID_ANY
+    ):
         item = wx.MenuItem(menu, id, caption, help, style)
         if icon is not None:
             bitmap = wx.ArtProvider_GetBitmap(icon, wx.ART_MENU, MENU_ICON_SIZE)
@@ -409,33 +442,73 @@ class MainWindow(wx.Frame):
     def _create_file_menu(self):
         menu = wx.Menu()
         menu_item = functools.partial(self._create_menu_item, menu)
-        menu_item(_('&Open') + '\tCtrl+O', _('Open a DjVu document'), self.on_open, icon=wx.ART_FILE_OPEN)
+        menu_item(
+            _("&Open") + "\tCtrl+O",
+            _("Open a DjVu document"),
+            self.on_open,
+            icon=wx.ART_FILE_OPEN,
+        )
         recent_menu = wx.Menu()
-        recent_menu_item = menu.AppendMenu(wx.ID_ANY, _('Open &recent'), recent_menu)
+        recent_menu_item = menu.AppendMenu(wx.ID_ANY, _("Open &recent"), recent_menu)
         self.file_history.set_menu(self, recent_menu_item, self.do_open)
-        save_menu_item = menu_item(_('&Save') + '\tCtrl+S', _('Save the document'), self.on_save, icon=wx.ART_FILE_SAVE)
-        close_menu_item = menu_item(_('&Close') + '\tCtrl+W', _('Close the document'), self.on_close, id=wx.ID_CLOSE)
-        self.editable_menu_items += close_menu_item,
-        self.saveable_menu_items += save_menu_item,
+        save_menu_item = menu_item(
+            _("&Save") + "\tCtrl+S",
+            _("Save the document"),
+            self.on_save,
+            icon=wx.ART_FILE_SAVE,
+        )
+        close_menu_item = menu_item(
+            _("&Close") + "\tCtrl+W",
+            _("Close the document"),
+            self.on_close,
+            id=wx.ID_CLOSE,
+        )
+        self.editable_menu_items += (close_menu_item,)
+        self.saveable_menu_items += (save_menu_item,)
         menu.AppendSeparator()
-        menu_item(_('&Quit') + '\tCtrl+Q', _('Quit the application'), self.on_exit, icon=wx.ART_QUIT)
+        menu_item(
+            _("&Quit") + "\tCtrl+Q",
+            _("Quit the application"),
+            self.on_exit,
+            icon=wx.ART_QUIT,
+        )
         return menu
 
     def _create_edit_menu(self):
         menu = wx.Menu()
         menu_item = functools.partial(self._create_menu_item, menu)
-        menu_item(_('&Metadata') + '\tCtrl+M', _('Edit the document or page metadata'), self.on_edit_metadata)
+        menu_item(
+            _("&Metadata") + "\tCtrl+M",
+            _("Edit the document or page metadata"),
+            self.on_edit_metadata,
+        )
         submenu = wx.Menu()
         submenu_item = functools.partial(self._create_menu_item, submenu)
-        submenu_item(_('&External editor') + '\tCtrl+T', _('Edit page text in an external editor'), self.on_external_edit_text)
-        submenu_item(_('&Flatten'), _('Remove details from page text'), self.on_flatten_text)
-        menu.AppendMenu(wx.ID_ANY, _('&Text'), submenu)
+        submenu_item(
+            _("&External editor") + "\tCtrl+T",
+            _("Edit page text in an external editor"),
+            self.on_external_edit_text,
+        )
+        submenu_item(
+            _("&Flatten"), _("Remove details from page text"), self.on_flatten_text
+        )
+        menu.AppendMenu(wx.ID_ANY, _("&Text"), submenu)
         submenu = wx.Menu()
         submenu_item = functools.partial(self._create_menu_item, submenu)
-        submenu_item(_('&Bookmark this page') + '\tCtrl+B', _('Add the current to document outline'), self.on_bookmark_current_page)
-        submenu_item(_('&External editor'), _('Edit document outline in an external editor'), self.on_external_edit_outline)
-        submenu_item(_('&Remove all'), _('Remove whole document outline'), self.on_remove_outline)
-        menu.AppendMenu(wx.ID_ANY, _('&Outline'), submenu)
+        submenu_item(
+            _("&Bookmark this page") + "\tCtrl+B",
+            _("Add the current to document outline"),
+            self.on_bookmark_current_page,
+        )
+        submenu_item(
+            _("&External editor"),
+            _("Edit document outline in an external editor"),
+            self.on_external_edit_outline,
+        )
+        submenu_item(
+            _("&Remove all"), _("Remove whole document outline"), self.on_remove_outline
+        )
+        menu.AppendMenu(wx.ID_ANY, _("&Outline"), submenu)
         return menu
 
     def _create_view_menu(self):
@@ -444,16 +517,46 @@ class MainWindow(wx.Frame):
         submenu = wx.Menu()
         submenu_item = functools.partial(self._create_menu_item, submenu)
         for caption, help, method, id in [
-            (_('Zoom &in') + '\tCtrl++', _('Increase the magnification'), self.on_zoom_in, wx.ID_ZOOM_IN),
-            (_('Zoom &out') + '\tCtrl+-', _('Decrease the magnification'), self.on_zoom_out, wx.ID_ZOOM_OUT),
+            (
+                _("Zoom &in") + "\tCtrl++",
+                _("Increase the magnification"),
+                self.on_zoom_in,
+                wx.ID_ZOOM_IN,
+            ),
+            (
+                _("Zoom &out") + "\tCtrl+-",
+                _("Decrease the magnification"),
+                self.on_zoom_out,
+                wx.ID_ZOOM_OUT,
+            ),
         ]:
             submenu_item(caption, help, method, id=id)
         submenu.AppendSeparator()
         for caption, help, zoom, id in [
-            (_('Fit &width'), _('Set magnification to fit page width'), FitWidthZoom(), None),
-            (_('Fit &page'), _('Set magnification to fit page'), FitPageZoom(), wx.ID_ZOOM_FIT),
-            (_('&Stretch'), _('Stretch the image to the window size'), StretchZoom(), None),
-            (_('One &to one'), _('Set full resolution magnification.'), OneToOneZoom(), wx.ID_ZOOM_100),
+            (
+                _("Fit &width"),
+                _("Set magnification to fit page width"),
+                FitWidthZoom(),
+                None,
+            ),
+            (
+                _("Fit &page"),
+                _("Set magnification to fit page"),
+                FitPageZoom(),
+                wx.ID_ZOOM_FIT,
+            ),
+            (
+                _("&Stretch"),
+                _("Stretch the image to the window size"),
+                StretchZoom(),
+                None,
+            ),
+            (
+                _("One &to one"),
+                _("Set full resolution magnification."),
+                OneToOneZoom(),
+                wx.ID_ZOOM_100,
+            ),
         ]:
             id = id or wx.ID_ANY
             submenu_item(caption, help, self.on_zoom(zoom), style=wx.ITEM_RADIO, id=id)
@@ -461,51 +564,108 @@ class MainWindow(wx.Frame):
         self.zoom_menu_items = {}
         for percent in 300, 200, 150, 100, 75, 50, 25:
             item = submenu_item(
-                '%d%%' % percent,
-                _('Magnify %d%%') % percent,
+                "%d%%" % percent,
+                _("Magnify %d%%") % percent,
                 self.on_zoom(PercentZoom(percent)),
-                style=wx.ITEM_RADIO
+                style=wx.ITEM_RADIO,
             )
             if percent == 100:
                 item.Check()
             self.zoom_menu_items[percent] = item
-        menu.AppendMenu(wx.ID_ANY, _('&Zoom'), submenu)
+        menu.AppendMenu(wx.ID_ANY, _("&Zoom"), submenu)
         submenu = wx.Menu()
         submenu_item = functools.partial(self._create_menu_item, submenu)
         for caption, help, method in [
-            (_('&Color') + '\tAlt+C', _('Display everything'), self.on_display_everything),
-            (_('&Stencil'), _('Display only the document bitonal stencil'), self.on_display_stencil),
-            (_('&Foreground'), _('Display only the foreground layer'), self.on_display_foreground),
-            (_('&Background'), _('Display only the background layer'), self.on_display_background),
-            (_('&None') + '\tAlt+N', _('Neither display the foreground layer nor the background layer'), self.on_display_none)
+            (
+                _("&Color") + "\tAlt+C",
+                _("Display everything"),
+                self.on_display_everything,
+            ),
+            (
+                _("&Stencil"),
+                _("Display only the document bitonal stencil"),
+                self.on_display_stencil,
+            ),
+            (
+                _("&Foreground"),
+                _("Display only the foreground layer"),
+                self.on_display_foreground,
+            ),
+            (
+                _("&Background"),
+                _("Display only the background layer"),
+                self.on_display_background,
+            ),
+            (
+                _("&None") + "\tAlt+N",
+                _("Neither display the foreground layer nor the background layer"),
+                self.on_display_none,
+            ),
         ]:
             submenu_item(caption, help, method, style=wx.ITEM_RADIO)
-        menu.AppendMenu(wx.ID_ANY, _('&Image'), submenu)
+        menu.AppendMenu(wx.ID_ANY, _("&Image"), submenu)
         submenu = wx.Menu()
         submenu_item = functools.partial(self._create_menu_item, submenu)
         _tmp_items = []
         for caption, help, method in [
-            (_('&None'), _('Don\'t display non-raster data'), self.on_display_no_nonraster),
-            (_('&Hyperlinks') + '\tAlt+H', _('Display overprinted annotations'), self.on_display_maparea),
-            (_('&Text') + '\tAlt+T', _('Display the text layer'), self.on_display_text),
+            (
+                _("&None"),
+                _("Don't display non-raster data"),
+                self.on_display_no_nonraster,
+            ),
+            (
+                _("&Hyperlinks") + "\tAlt+H",
+                _("Display overprinted annotations"),
+                self.on_display_maparea,
+            ),
+            (_("&Text") + "\tAlt+T", _("Display the text layer"), self.on_display_text),
         ]:
             _tmp_items += [submenu_item(caption, help, method, style=wx.ITEM_RADIO)]
-        self.menu_item_display_no_nonraster, self.menu_item_display_maparea, self.menu_item_display_text = _tmp_items
+        (
+            self.menu_item_display_no_nonraster,
+            self.menu_item_display_maparea,
+            self.menu_item_display_text,
+        ) = _tmp_items
         del _tmp_items
         self.menu_item_display_no_nonraster.Check()
-        menu.AppendMenu(wx.ID_ANY, _('&Non-raster data'), submenu)
-        menu_item(_('&Refresh') + '\tCtrl+L', _('Refresh the window'), self.on_refresh)
+        menu.AppendMenu(wx.ID_ANY, _("&Non-raster data"), submenu)
+        menu_item(_("&Refresh") + "\tCtrl+L", _("Refresh the window"), self.on_refresh)
         return menu
 
     def _create_go_menu(self):
         menu = wx.Menu()
         menu_item = functools.partial(self._create_menu_item, menu)
         for caption, help, method, icon in [
-            (_('&First page') + '\tCtrl-Home', _('Jump to first document page'), self.on_first_page, None),
-            (_('&Previous page') + '\tPgUp', _('Jump to previous document page'), self.on_previous_page, wx.ART_GO_UP),
-            (_('&Next page') + '\tPgDn', _('Jump to next document page'), self.on_next_page, wx.ART_GO_DOWN),
-            (_('&Last page') + '\tCtrl-End', _('Jump to last document page'), self.on_last_page, None),
-            (_('&Go to page…') + '\tCtrl-G', _('Jump to page…'), self.on_goto_page, None)
+            (
+                _("&First page") + "\tCtrl-Home",
+                _("Jump to first document page"),
+                self.on_first_page,
+                None,
+            ),
+            (
+                _("&Previous page") + "\tPgUp",
+                _("Jump to previous document page"),
+                self.on_previous_page,
+                wx.ART_GO_UP,
+            ),
+            (
+                _("&Next page") + "\tPgDn",
+                _("Jump to next document page"),
+                self.on_next_page,
+                wx.ART_GO_DOWN,
+            ),
+            (
+                _("&Last page") + "\tCtrl-End",
+                _("Jump to last document page"),
+                self.on_last_page,
+                None,
+            ),
+            (
+                _("&Go to page…") + "\tCtrl-G",
+                _("Jump to page…"),
+                self.on_goto_page,
+                None,
+            ),
         ]:
             menu_item(caption, help, method, icon=icon)
         return menu
@@ -513,25 +673,40 @@ class MainWindow(wx.Frame):
     def _create_settings_menu(self):
         menu = wx.Menu()
         menu_item = functools.partial(self._create_menu_item, menu)
-        sidebar_menu_item = menu_item(_('Show &sidebar') + '\tF9', _('Show/hide the sidebar'), self.on_show_sidebar, style=wx.ITEM_CHECK)
+        sidebar_menu_item = menu_item(
+            _("Show &sidebar") + "\tF9",
+            _("Show/hide the sidebar"),
+            self.on_show_sidebar,
+            style=wx.ITEM_CHECK,
+        )
         if self.default_sidebar_shown:
             sidebar_menu_item.Check()
-        menu_item(_('External editor…'), _('Setup an external editor'), self.on_setup_external_editor)
+        menu_item(
+            _("External editor…"),
+            _("Setup an external editor"),
+            self.on_setup_external_editor,
+        )
         return menu
 
     def _create_help_menu(self):
         menu = wx.Menu()
         menu_item = functools.partial(self._create_menu_item, menu)
-        menu_item(_('&About') + '\tF1', _('More information about this program'), self.on_about, id=wx.ID_ABOUT)
+        menu_item(
+            _("&About") + "\tF1",
+            _("More information about this program"),
+            self.on_about,
+            id=wx.ID_ABOUT,
+        )
         return menu
 
     def on_setup_external_editor(self, event):
-        dialog = wx.TextEntryDialog(self,
-            caption=_('Setup an external editor'),
-            message=_('Enter path to your favourite text editor.')
+        dialog = wx.TextEntryDialog(
+            self,
+            caption=_("Setup an external editor"),
+            message=_("Enter path to your favourite text editor."),
         )
         try:
-            dialog.SetValue(self.default_editor_path or '')
+            dialog.SetValue(self.default_editor_path or "")
             if dialog.ShowModal() == wx.ID_OK:
                 self.default_editor_path = dialog.GetValue()
                 self.setup_external_editor()
@@ -544,13 +719,14 @@ class MainWindow(wx.Frame):
     def _on_sidebar_page_changed(self, *methods):
         def event_handler(event):
             methods[event.GetSelection()](event)
+
         return event_handler
 
     def on_char(self, event):
         key_code = event.GetKeyCode()
-        if key_code == ord('-'):
+        if key_code == ord("-"):
             self.on_zoom_out(event)
-        elif key_code == ord('+'):
+        elif key_code == ord("+"):
             self.on_zoom_in(event)
         else:
             event.Skip()
@@ -569,13 +745,17 @@ class MainWindow(wx.Frame):
     def dirty():
         def get(self):
             return self._dirty
+
         def set(self, value):
             self._dirty = value
             self.enable_save(value)
+
         return property(get, set)
 
-    def error_box(self, message, caption=_('Error')):
-        wx.MessageBox(message=message, caption=caption, style=(wx.OK | wx.ICON_ERROR), parent=self)
+    def error_box(self, message, caption=_("Error")):
+        wx.MessageBox(
+            message=message, caption=caption, style=(wx.OK | wx.ICON_ERROR), parent=self
+        )
 
     def on_exit(self, event):
         if self.do_open(None):
@@ -601,7 +781,7 @@ class MainWindow(wx.Frame):
         self.do_save()
 
     def on_save_failed(self, exception):
-        self.error_box(_('Saving document failed:\n%s') % exception)
+        self.error_box(_("Saving document failed:\n%s") % exception)
 
     def do_save(self):
         if not self.dirty:
@@ -610,10 +790,13 @@ class MainWindow(wx.Frame):
         sed = StreamEditor(self.path, autosave=True)
         for model in self.models:
             model.export(sed)
+
         def job():
             try:
                 sed.commit()
-                self.document = self.context.new_document(djvu.decode.FileURI(self.path))
+                self.document = self.context.new_document(
+                    djvu.decode.FileURI(self.path)
+                )
                 for model in self.models:
                     model.reset_document(self.document)
             except Exception as exception:
@@ -621,6 +804,7 @@ class MainWindow(wx.Frame):
             else:
                 exception = None
             queue.put(exception)
+
         thread = threading.Thread(target=job)
         thread.start()
         dialog = None
@@ -632,8 +816,8 @@ class MainWindow(wx.Frame):
                     return False
             except QueueEmpty:
                 dialog = dialogs.ProgressDialog(
-                    title=_('Saving document'),
-                    message=_('Saving the document, please wait…'),
+                    title=_("Saving document"),
+                    message=_("Saving the document, please wait…"),
                     parent=self,
                     style=(wx.PD_APP_MODAL | wx.PD_ELAPSED_TIME),
                 )
@@ -660,7 +844,9 @@ class MainWindow(wx.Frame):
             self.do_hide_sidebar()
 
     def do_show_sidebar(self):
-        self.splitter.SplitVertically(self.sidebar, self.scrolled_panel, self.default_splitter_sash)
+        self.splitter.SplitVertically(
+            self.sidebar, self.scrolled_panel, self.default_splitter_sash
+        )
         self.default_sidebar_shown = True
 
     def do_hide_sidebar(self):
@@ -707,22 +893,28 @@ class MainWindow(wx.Frame):
             id = self.document.pages[page_no].file.id
         except djvu.decode.NotAvailable:
             id = str(page_no)
-        return '#' + id
+        return "#" + id
 
     @apply
     def page_no():
         def get(self):
             return self._page_no
+
         def set(self, n):
             if self.document is None:
                 self._page_no = 0
-                self.status_bar.SetStatusText('', 1)
+                self.status_bar.SetStatusText("", 1)
                 return
             if n < 0 or n >= len(self.document.pages):
                 return
             self._page_no = n
-            self.status_bar.SetStatusText(_('Page %(pageno)d of %(npages)d') % {'pageno': (n + 1), 'npages': len(self.document.pages)}, 1)
+            self.status_bar.SetStatusText(
+                _("Page %(pageno)d of %(npages)d")
+                % {"pageno": (n + 1), "npages": len(self.document.pages)},
+                1,
+            )
             self.update_page_widget(new_page=True)
+
         return property(get, set)
 
     def on_first_page(self, event):
@@ -740,12 +932,12 @@ class MainWindow(wx.Frame):
     def on_goto_page(self, event):
         dialog = dialogs.NumberEntryDialog(
             parent=self,
-            message=(_('Go to page') + ':'),
-            prompt='',
-            caption=_('Go to page'),
+            message=(_("Go to page") + ":"),
+            prompt="",
+            caption=_("Go to page"),
             value=self.page_no + 1,
             min=1,
-            max=len(self.document.pages)
+            max=len(self.document.pages),
         )
         try:
             rc = dialog.ShowModal()
@@ -755,14 +947,22 @@ class MainWindow(wx.Frame):
             dialog.Destroy()
 
     def on_edit_metadata(self, event):
-        document_metadata_model = self.metadata_model[models.SHARED_ANNOTATIONS_PAGENO].clone()
-        document_metadata_model.title = _('Document metadata')
+        document_metadata_model = self.metadata_model[
+            models.SHARED_ANNOTATIONS_PAGENO
+        ].clone()
+        document_metadata_model.title = _("Document metadata")
         page_metadata_model = self.metadata_model[self.page_no].clone()
-        page_metadata_model.title = _('Page %d metadata') % (self.page_no + 1)
-        dialog = MetadataDialog(self, models=(document_metadata_model, page_metadata_model), known_keys=djvu.const.METADATA_KEYS)
+        page_metadata_model.title = _("Page %d metadata") % (self.page_no + 1)
+        dialog = MetadataDialog(
+            self,
+            models=(document_metadata_model, page_metadata_model),
+            known_keys=djvu.const.METADATA_KEYS,
+        )
         try:
             if dialog.ShowModal() == wx.ID_OK:
-                self.metadata_model[models.SHARED_ANNOTATIONS_PAGENO] = document_metadata_model
+                self.metadata_model[
+                    models.SHARED_ANNOTATIONS_PAGENO
+                ] = document_metadata_model
                 self.metadata_model[self.page_no] = page_metadata_model
                 self.dirty = True
         finally:
@@ -788,7 +988,9 @@ class MainWindow(wx.Frame):
 
     def on_bookmark_current_page(self, event):
         uri = self.get_page_uri()
-        node = models.outline.InnerNode(djvu.sexpr.Expression((_('(no title)'), uri)), self.outline_model)
+        node = models.outline.InnerNode(
+            djvu.sexpr.Expression((_("(no title)"), uri)), self.outline_model
+        )
         self.outline_model.root.add_child(node)
         node.notify_select()
 
@@ -797,10 +999,11 @@ class MainWindow(wx.Frame):
 
     def on_external_edit_outline(self, event):
         model = self.outline_model
+
         def job(disabler):
             new_repr = None
             try:
-                with external_editor.temporary_file('outline.txt') as tmp_file:
+                with external_editor.temporary_file("outline.txt") as tmp_file:
                     model.export_as_plaintext(tmp_file)
                     tmp_file.flush()
                     self.external_editor(tmp_file.name)
@@ -810,16 +1013,19 @@ class MainWindow(wx.Frame):
                 pass
             else:
                 exception = None
-            wx.CallAfter(self.after_external_edit_outline, new_repr, disabler, exception)
+            wx.CallAfter(
+                self.after_external_edit_outline, new_repr, disabler, exception
+            )
             disabler = exception = None
+
         disabler = wx.WindowDisabler()
         thread = threading.Thread(target=job, args=(disabler,))
         thread.start()
 
     def on_external_edit_failed(self, exception):
         self.error_box(
-            _('External edit failed:\n%s') %
-            str(exception).decode(system_encoding, 'replace')
+            _("External edit failed:\n%s")
+            % str(exception).decode(system_encoding, "replace")
         )
 
     def after_external_edit_outline(self, new_repr, disabler, exception):
@@ -832,12 +1038,13 @@ class MainWindow(wx.Frame):
     def on_external_edit_text(self, event):
         sexpr = self.text_model[self.page_no].raw_value
         if not sexpr:
-            self.error_box(_('No text layer to edit.'))
+            self.error_box(_("No text layer to edit."))
             return
+
         def job(disabler):
             new_sexpr = None
             try:
-                with external_editor.temporary_file('text.txt') as tmp_file:
+                with external_editor.temporary_file("text.txt") as tmp_file:
                     text_mangle.export(sexpr, tmp_file)
                     tmp_file.flush()
                     self.external_editor(tmp_file.name)
@@ -852,6 +1059,7 @@ class MainWindow(wx.Frame):
                 exception = None
             wx.CallAfter(self.after_external_edit_text, new_sexpr, disabler, exception)
             disabler = exception = None
+
         disabler = wx.WindowDisabler()
         thread = threading.Thread(target=job, args=(disabler,))
         thread.start()
@@ -861,10 +1069,10 @@ class MainWindow(wx.Frame):
             try:
                 raise exception
             except text_mangle.CharacterZoneFound:
-                self.error_box(_('Cannot edit text with character zones.'))
+                self.error_box(_("Cannot edit text with character zones."))
                 return
             except text_mangle.LengthChanged:
-                self.error_box(_('Number of lines changed.'))
+                self.error_box(_("Number of lines changed."))
                 return
             except Exception:
                 self.on_external_edit_failed(exception)
@@ -901,13 +1109,19 @@ class MainWindow(wx.Frame):
     def on_zoom(self, zoom):
         def event_handler(event):
             self.page_widget.zoom = zoom
+
         return event_handler
 
     def do_open(self, path):
         if isinstance(path, str):
             path = path.encode(system_encoding)
         if self.dirty:
-            dialog = wx.MessageDialog(self, _('Do you want to save your changes?'), '', wx.YES_NO | wx.YES_DEFAULT | wx.CANCEL | wx.ICON_QUESTION)
+            dialog = wx.MessageDialog(
+                self,
+                _("Do you want to save your changes?"),
+                "",
+                wx.YES_NO | wx.YES_DEFAULT | wx.CANCEL | wx.ICON_QUESTION,
+            )
             try:
                 rc = dialog.ShowModal()
                 if rc == wx.ID_YES:
@@ -923,10 +1137,14 @@ class MainWindow(wx.Frame):
         self.path = path
         self.document = None
         self.page_no = 0
+
         def clear_models():
-            self.metadata_model = self.text_model = self.outline_model = self.annotations_model = None
+            self.metadata_model = (
+                self.text_model
+            ) = self.outline_model = self.annotations_model = None
             self.models = ()
             self.enable_edit(False)
+
         if path is None:
             clear_models()
         else:
@@ -938,7 +1156,12 @@ class MainWindow(wx.Frame):
                 self.text_model = TextModel(self.document)
                 self.outline_model = OutlineModel(self.document)
                 self.annotations_model = AnnotationsModel(path)
-                self.models = self.metadata_model, self.text_model, self.outline_model, self.annotations_model
+                self.models = (
+                    self.metadata_model,
+                    self.text_model,
+                    self.outline_model,
+                    self.annotations_model,
+                )
                 self.enable_edit(True)
             except djvu.decode.JobFailed:
                 clear_models()
@@ -961,12 +1184,16 @@ class MainWindow(wx.Frame):
             self.page_proxy = PageProxy(
                 page=self.page,
                 text_model=self.text_model[self.page_no],
-                annotations_model=self.annotations_model[self.page_no]
+                annotations_model=self.annotations_model[self.page_no],
             )
             self.page_proxy.register_text_callback(self._page_text_callback)
-            self.page_proxy.register_annotations_callback(self._page_annotations_callback)
+            self.page_proxy.register_annotations_callback(
+                self._page_annotations_callback
+            )
             if new_document:
-                self.document_proxy = DocumentProxy(document=self.document, outline=self.outline_model)
+                self.document_proxy = DocumentProxy(
+                    document=self.document, outline=self.outline_model
+                )
                 self.document_proxy.register_outline_callback(self._outline_callback)
         self.page_widget.page = self.page_proxy
         self.text_browser.page = self.page_proxy
@@ -980,23 +1207,25 @@ class MainWindow(wx.Frame):
         else:
             base_path = os.path.basename(self.path)
             if isinstance(base_path, str):
-                base_path = base_path.decode(system_encoding, 'replace')
-            title = '%s — %s' % (APPLICATION_NAME, base_path)
+                base_path = base_path.decode(system_encoding, "replace")
+            title = "%s — %s" % (APPLICATION_NAME, base_path)
         self.SetTitle(title)
 
     def on_about(self, event):
         message = (
-            '%(app)s %(version)s\n' +
-            _('Author') + ': %(author)s\n' +
-            _('License') + ': %(license)s'
+            "%(app)s %(version)s\n"
+            + _("Author")
+            + ": %(author)s\n"
+            + _("License")
+            + ": %(license)s"
         )
         message = message % dict(
             app=APPLICATION_NAME,
             version=__version__,
             author=__author__,
-            license=LICENSE
+            license=LICENSE,
         )
-        wx.MessageBox(message=message, caption=_('About…'))
+        wx.MessageBox(message=message, caption=_("About…"))
 
     def handle_message(self, event):
         message = event.message
@@ -1006,12 +1235,14 @@ class MainWindow(wx.Frame):
             # Bogus, non-error message are ignored.
             pass
         self.update_title()
-        if isinstance(message, (djvu.decode.RedisplayMessage, djvu.decode.RelayoutMessage)):
+        if isinstance(
+            message, (djvu.decode.RedisplayMessage, djvu.decode.RelayoutMessage)
+        ):
             if self.page_job is message.page_job:
                 self.update_page_widget()
 
-class Context(djvu.decode.Context):
 
+class Context(djvu.decode.Context):
     def __new__(cls, window):
         return djvu.decode.Context.__new__(cls)
 
@@ -1022,12 +1253,13 @@ class Context(djvu.decode.Context):
     def handle_message(self, message):
         wx.PostEvent(self.window, WxDjVuMessage(message=message))
 
-class Application(wx.App):
 
+class Application(wx.App):
     @apply
     def config():
         def get(self):
             return self._config
+
         return property(get)
 
     def except_hook(self, *args):
@@ -1036,19 +1268,22 @@ class Application(wx.App):
 
     def except_hook_after(self, type_, value, traceback):
         from traceback import format_exception
-        message = _('An unhandled exception occurred. Ideally, this should not happen. Please report the bug to the author.\n\n')
-        message += ''.join(format_exception(type_, value, traceback))
-        caption = _('Unhandled exception: %s' % type_.__name__)
+
+        message = _(
+            "An unhandled exception occurred. Ideally, this should not happen. Please report the bug to the author.\n\n"
+        )
+        message += "".join(format_exception(type_, value, traceback))
+        caption = _("Unhandled exception: %s" % type_.__name__)
         wx.MessageBox(message=message, caption=caption, style=(wx.OK | wx.ICON_ERROR))
 
     def OnInit(self):
         wx.lib.ogl.OGLInitialize()
         self.SetAppName(APPLICATION_NAME)
-        if os.name == 'posix':
-            legacy_path = os.path.expanduser('~/.DjVuSmooth')
+        if os.name == "posix":
+            legacy_path = os.path.expanduser("~/.DjVuSmooth")
         else:
             legacy_path = None
-        self._config = config.Config('djvusmooth', legacy_path)
+        self._config = config.Config("djvusmooth", legacy_path)
         sys.excepthook = self.except_hook
         return True
 
@@ -1060,5 +1295,6 @@ class Application(wx.App):
             path = os.path.abspath(path)
             window.do_open(path)
         return self.MainLoop()
+
 
 # vim:ts=4 sts=4 sw=4 et

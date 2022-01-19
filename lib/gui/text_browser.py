@@ -15,6 +15,7 @@
 # more details.
 
 import wx
+from apply import apply
 
 import djvusmooth.models.text
 from djvusmooth import models
@@ -22,15 +23,16 @@ from djvusmooth.varietes import replace_control_characters
 from djvusmooth.i18n import _
 from djvusmooth.gui import wxcompat
 
+
 def get_label_for_node(node):
     zone_type = str(node.type)
     if node.is_inner():
         return _(zone_type)
     else:
-        return _(zone_type) + ': ' + replace_control_characters(' ', node.text)
+        return _(zone_type) + ": " + replace_control_characters(" ", node.text)
+
 
 class PageTextCallback(models.text.PageTextCallback):
-
     def __init__(self, browser):
         self._browser = browser
 
@@ -50,9 +52,16 @@ class PageTextCallback(models.text.PageTextCallback):
     def notify_node_select(self, node):
         wx.CallAfter(lambda: self._browser.on_node_select(node))
 
-class TextBrowser(wx.TreeCtrl):
 
-    def __init__(self, parent, id=wx.ID_ANY, pos=wx.DefaultPosition, size=wx.DefaultSize, style=(wx.TR_HAS_BUTTONS | wx.TR_EDIT_LABELS)):
+class TextBrowser(wx.TreeCtrl):
+    def __init__(
+        self,
+        parent,
+        id=wx.ID_ANY,
+        pos=wx.DefaultPosition,
+        size=wx.DefaultSize,
+        style=(wx.TR_HAS_BUTTONS | wx.TR_EDIT_LABELS),
+    ):
         wx.TreeCtrl.__init__(self, parent, id, pos, size, style)
         self._have_root = False
         self.page = None
@@ -88,6 +97,7 @@ class TextBrowser(wx.TreeCtrl):
     def page():
         def get(self):
             return self._page
+
         def set(self, value):
             if value is not True:
                 self._page = value
@@ -95,6 +105,7 @@ class TextBrowser(wx.TreeCtrl):
                 self._callback = PageTextCallback(self)
                 self._page.text.register_callback(self._callback)
             self._recreate_children()
+
         return property(get, set)
 
     def on_selection_changed(self, event):
@@ -165,6 +176,7 @@ class TextBrowser(wx.TreeCtrl):
             self._have_root = True
             self._add_children(root, node)
 
-__all__ = ['TextBrowser']
+
+__all__ = ["TextBrowser"]
 
 # vim:ts=4 sts=4 sw=4 et

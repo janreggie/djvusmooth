@@ -15,6 +15,7 @@
 # more details.
 
 import wx
+from apply import apply
 
 import djvusmooth.models.outline
 from djvusmooth import models
@@ -22,11 +23,12 @@ from djvusmooth.varietes import replace_control_characters
 from djvusmooth.i18n import _
 from djvusmooth.gui import wxcompat
 
+
 def get_label_for_node(node):
-    return replace_control_characters(' ', node.text)
+    return replace_control_characters(" ", node.text)
+
 
 class OutlineCallback(models.outline.OutlineCallback):
-
     def __init__(self, browser):
         self._browser = browser
 
@@ -42,9 +44,16 @@ class OutlineCallback(models.outline.OutlineCallback):
     def notify_tree_change(self, node):
         wx.CallAfter(lambda: self._browser.on_tree_change(node))
 
-class OutlineBrowser(wx.TreeCtrl):
 
-    def __init__(self, parent, id=wx.ID_ANY, pos=wx.DefaultPosition, size=wx.DefaultSize, style=(wx.TR_HAS_BUTTONS | wx.TR_EDIT_LABELS)):
+class OutlineBrowser(wx.TreeCtrl):
+    def __init__(
+        self,
+        parent,
+        id=wx.ID_ANY,
+        pos=wx.DefaultPosition,
+        size=wx.DefaultSize,
+        style=(wx.TR_HAS_BUTTONS | wx.TR_EDIT_LABELS),
+    ):
         wx.TreeCtrl.__init__(self, parent, id, pos, size, style)
         self._items = {}
         self._root_item = None
@@ -99,7 +108,7 @@ class OutlineBrowser(wx.TreeCtrl):
         if isinstance(node, models.outline.RootNode):
             return
         uri = node.uri
-        if uri.startswith('#'):
+        if uri.startswith("#"):
             try:
                 n = int(buffer(uri, 1))
             except ValueError:
@@ -115,10 +124,7 @@ class OutlineBrowser(wx.TreeCtrl):
         except NotImplementedError:
             return
 
-    _WXK_TO_METHOD = {
-        wx.WXK_RETURN: do_goto_node,
-        wx.WXK_DELETE: do_delete_node
-    }
+    _WXK_TO_METHOD = {wx.WXK_RETURN: do_goto_node, wx.WXK_DELETE: do_delete_node}
 
     def on_char(self, event):
         key_code = event.GetKeyCode()
@@ -171,6 +177,7 @@ class OutlineBrowser(wx.TreeCtrl):
     def document():
         def get(self):
             return self._document
+
         def set(self, value):
             if value is not True:
                 self._document = value
@@ -178,6 +185,7 @@ class OutlineBrowser(wx.TreeCtrl):
                 self._callback = OutlineCallback(self)
                 self._document.outline.register_callback(self._callback)
             self._recreate_children()
+
         return property(get, set)
 
     def on_selection_changed(self, event):
@@ -268,6 +276,7 @@ class OutlineBrowser(wx.TreeCtrl):
         if self._create_root_item():
             self._add_children(self._root_item, self.document.outline.root)
 
-__all__ = ['OutlineBrowser']
+
+__all__ = ["OutlineBrowser"]
 
 # vim:ts=4 sts=4 sw=4 et

@@ -24,6 +24,7 @@ See Lizardtech DjVu Reference (DjVu 3):
 import copy
 import weakref
 import itertools
+from apply import apply
 
 import djvu.decode
 import djvu.sexpr

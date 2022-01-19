@@ -16,6 +16,7 @@
 
 import wx
 import wx.lib.mixins.listctrl
+from apply import apply
 
 import djvusmooth.models.annotations
 from djvusmooth import models
@@ -24,8 +25,8 @@ from djvusmooth import gui
 from djvusmooth.i18n import _
 from djvusmooth.gui import wxcompat
 
-class PageAnnotationsCallback(models.annotations.PageAnnotationsCallback):
 
+class PageAnnotationsCallback(models.annotations.PageAnnotationsCallback):
     def __init__(self, owner):
         self._owner = owner
 
@@ -47,22 +48,30 @@ class PageAnnotationsCallback(models.annotations.PageAnnotationsCallback):
     def notify_node_delete(self, node):
         wx.CallAfter(lambda: self._owner.on_node_delete(node))
 
+
 def item_to_id(item):
     try:
         return int(item)
     except TypeError:
         return item.GetId()
 
+
 class MapAreaBrowser(
     wx.ListCtrl,
     wx.lib.mixins.listctrl.ListCtrlAutoWidthMixin,
-    wx.lib.mixins.listctrl.TextEditMixin
+    wx.lib.mixins.listctrl.TextEditMixin,
 ):
-
-    def __init__(self, parent, id=wx.ID_ANY, pos=wx.DefaultPosition, size=wx.DefaultSize, style=wx.LC_REPORT):
+    def __init__(
+        self,
+        parent,
+        id=wx.ID_ANY,
+        pos=wx.DefaultPosition,
+        size=wx.DefaultSize,
+        style=wx.LC_REPORT,
+    ):
         wx.ListCtrl.__init__(self, parent, id, pos, size, style)
-        self.InsertColumn(0, _('URI'))
-        self.InsertColumn(1, _('Comment'))
+        self.InsertColumn(0, _("URI"))
+        self.InsertColumn(1, _("Comment"))
         self._have_items = False
         self._data = {}
         self._data_map = {}
@@ -77,9 +86,7 @@ class MapAreaBrowser(
     def do_remove_node(self, node):
         node.delete()
 
-    _WXK_TO_METHOD = {
-        wx.WXK_DELETE: do_remove_node
-    }
+    _WXK_TO_METHOD = {wx.WXK_DELETE: do_remove_node}
 
     def on_char(self, event):
         key_code = event.GetKeyCode()
@@ -142,6 +149,7 @@ class MapAreaBrowser(
     def page():
         def get(self):
             return self._page
+
         def set(self, value):
             if value is not True:
                 self._page = value
@@ -150,6 +158,7 @@ class MapAreaBrowser(
                 self._page.annotations.register_callback(self._callback)
                 self._model = self.page.annotations
             self._recreate_items()
+
         return property(get, set)
 
     def SetStringItem(self, item, col, label, super=False):
@@ -194,7 +203,7 @@ class MapAreaBrowser(
             i = item_to_id(item)
         else:
             i = self.GetItemCount()
-            item = self.InsertStringItem(i, '')
+            item = self.InsertStringItem(i, "")
         for i, s in enumerate((node.uri, node.comment)):
             self.SetStringItem(item, i, s, super=True)
         self.SetPyData(item, node)
@@ -208,6 +217,7 @@ class MapAreaBrowser(
         for node in self._model.mapareas:
             self._insert_item(node)
 
-__all__ = ['MapAreaBrowser']
+
+__all__ = ["MapAreaBrowser"]
 
 # vim:ts=4 sts=4 sw=4 et
