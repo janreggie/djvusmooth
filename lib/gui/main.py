@@ -378,7 +378,7 @@ class MainWindow(wx.Frame):
         self._page_text_callback = PageTextCallback(self)
         self._page_annotations_callback = PageAnnotationsCallback(self)
         self._outline_callback = OutlineCallback(self)
-        self.status_bar = self.CreateStatusBar(2, style=wx.ST_SIZEGRIP)
+        self.status_bar = self.CreateStatusBar(2, style=wx.STB_SIZEGRIP)
         self.splitter = wx.SplitterWindow(self, style=wx.SP_LIVE_UPDATE)
         self.splitter.Bind(
             wx.EVT_SPLITTER_SASH_POS_CHANGED, self.on_splitter_sash_changed
