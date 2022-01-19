@@ -433,7 +433,7 @@ class MainWindow(wx.Frame):
     ):
         item = wx.MenuItem(menu, id, caption, help, style)
         if icon is not None:
-            bitmap = wx.ArtProvider_GetBitmap(icon, wx.ART_MENU, MENU_ICON_SIZE)
+            bitmap = wx.ArtProvider.GetBitmap(icon, wx.ART_MENU, MENU_ICON_SIZE)
             item.SetBitmap(bitmap)
         self.Bind(wx.EVT_MENU, method, item)
         menu.AppendItem(item)
